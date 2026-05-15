@@ -68,13 +68,13 @@ Expect 5–15 minutes per audit, depending on site size.
 
 Five files dropped into your working directory:
 
-| File | Producer | Purpose |
+| File | Purpose |
 | --- | --- | --- |
-| `research/01-client-brand.md` | `website-intelligence` | Brand snapshot — colors, fonts, tone, messaging, site architecture. |
-| `research/02-competitor-analysis.md` | `website-intelligence` | Top-5 deep scrape, comparison matrix, "Patterns of the top 10%". |
-| `competitive-analysis.html` | `website-intelligence` | Print-ready PDF-export competitive report. |
-| `GEO-AUDIT-REPORT.md` | `geo-audit` | Overall GEO Score, 6-category breakdown, prioritized issues, 30-day plan. |
-| `dashboard.html` | this plugin | The new combined view — two tabs (**Competitive** / **GEO**) rendered from the markdowns above. |
+| `research/01-client-brand.md` | Brand snapshot — colors, fonts, tone, messaging, site architecture. |
+| `research/02-competitor-analysis.md` | Top-5 deep scrape, comparison matrix, "Patterns of the top 10%". |
+| `competitive-analysis.html` | Print-ready PDF-export competitive report. |
+| `GEO-AUDIT-REPORT.md` | Overall GEO Score, 6-category breakdown, prioritized issues, 30-day plan. |
+| `dashboard.html` | The new combined view — two tabs (**Competitive** / **GEO**) rendered from the markdowns above. |
 
 The two Markdown files in `research/` plus `GEO-AUDIT-REPORT.md` are the **implementation source of truth**. Open them in a fresh Claude Code session inside your website's repo and paste:
 
@@ -83,14 +83,6 @@ Read research/02-competitor-analysis.md and GEO-AUDIT-REPORT.md. Implement every
 ```
 
 Claude can act on those reports directly.
-
----
-
-## Preview the output
-
-See `skills/business-audit/examples/sample-audit/` for a complete realistic audit on a fictional brand. Open `dashboard.html` in a browser to see the dashboard format. Read the two `.md` files to see the finding-block shape.
-
----
 
 ## What the audit covers
 

@@ -1,148 +1,120 @@
 # Business Audit
 
-A Claude Code plugin that runs a **competitive intelligence audit** and an **AI-search (GEO) audit** in one pass, then writes two implementation-ready Markdown reports plus a polished interactive HTML dashboard.
+A Claude Code plugin that runs a **competitive intelligence audit** and an **AI-search (GEO) audit** on any website in one pass, then writes two implementation-ready Markdown reports plus a polished interactive HTML dashboard.
 
-Built by fusing two existing skills — `website-intelligence` (competitive scraping + design pattern extraction) and `geo-audit` (Generative Engine Optimization scoring) — into a single plugin you can hand to a friend, install with one command, and run on any website.
-
----
-
-## What you get per audit
-
-Three files dropped into the working directory:
-
-| File | Purpose |
-| --- | --- |
-| `COMPETITIVE-ANALYSIS.md` | Top 5 competitor profiles, comparison matrix, winning design and messaging patterns, prioritized recommendations. |
-| `GEO-AUDIT.md` | Client GEO Score (0–100), 6-category breakdown, AI platform readiness, prioritized fixes with code snippets, competitor benchmark row. |
-| `dashboard.html` | Self-contained HTML with two tabs (**Competitive** / **GEO**), terracotta-and-paper design, print-friendly so you can export to PDF. |
-
-Both Markdown files use the same **implementation-ready finding format** — a downstream Claude Code session can read either file and apply the fixes mechanically without needing clarification.
+Made by **Lucid**.
 
 ---
 
-## Install
+## Install (60 seconds)
 
 ```bash
-# Clone into your Claude Code plugins directory
-git clone https://github.com/YOUR_USERNAME/business-audit ~/.claude/plugins/business-audit
-
-# Restart Claude Code so it picks up the new plugin
+git clone https://github.com/rmschulte05/business-audit ~/.claude/plugins/business-audit
 ```
 
-That's it. The plugin bundles all of the geo-* sub-skills it depends on, so you don't need to install anything else.
+Restart Claude Code. That's the whole install — everything the plugin needs is bundled.
 
-### Optional: Firecrawl
+---
 
-The audit uses Firecrawl MCP for high-quality scraping when available, and falls back to `WebFetch` otherwise. To enable Firecrawl, set your API key:
+## Firecrawl MCP (required)
 
-```bash
-export FIRECRAWL_API_KEY="fc-..."
+The audit scrapes the client site, discovers competitors, and deep-scrapes the top 5. It needs Firecrawl MCP to do that. **The plugin will not run without it.**
+
+### 1. Get a free API key
+
+Sign up at [https://firecrawl.dev](https://firecrawl.dev) — the free tier covers a handful of audits per month, which is plenty for testing.
+
+### 2. Add Firecrawl to Claude Code
+
+Open your Claude Code settings (`~/.claude/settings.json` or the in-app config), and add:
+
+```json
+{
+  "mcpServers": {
+    "firecrawl": {
+      "command": "npx",
+      "args": ["-y", "firecrawl-mcp"],
+      "env": {
+        "FIRECRAWL_API_KEY": "fc-YOUR_KEY_HERE"
+      }
+    }
+  }
+}
 ```
 
-Sign up at https://firecrawl.dev — the free tier is enough for a handful of audits.
+Replace `fc-YOUR_KEY_HERE` with the key from step 1.
+
+### 3. Restart Claude Code
+
+After restart, you should see `mcp__firecrawl__scrape`, `mcp__firecrawl__map`, and `mcp__firecrawl__search` in your available tools. If you don't, the plugin will refuse to run and tell you what's missing.
 
 ---
 
 ## Usage
 
-In any Claude Code session, just describe what you want:
+In any Claude Code session:
 
 ```
-audit https://example.com — it's a B2B SaaS in the dev-tooling niche
+audit https://example.com — B2B SaaS for engineering teams
 ```
 
-or
+or just type `/business-audit` and the skill will ask for the URL and niche.
 
-```
-/business-audit
-```
-
-The skill will ask for the URL and niche if not provided, then run through six phases:
-
-1. **Discovery** — detect business type, map the client's site
-2. **Client analysis** — extract brand assets + run GEO scoring (parallel)
-3. **Competitor discovery** — find and score the top 10 candidates in the niche
-4. **Competitor deep dive** — full scrape + GEO mini-audit on the top 5
-5. **Synthesis** — write `COMPETITIVE-ANALYSIS.md` and `GEO-AUDIT.md`
-6. **Dashboard render** — inject the data into `dashboard.html`
-
-Expect 5–15 minutes for a real audit, depending on site size and Firecrawl latency.
+Expect 5–15 minutes per audit, depending on site size.
 
 ---
 
-## What the dashboard looks like
+## What you get
 
-Open `dashboard.html` in any browser. Two tabs:
+Five files dropped into your working directory:
 
-- **Competitive** — competitor cards, side-by-side comparison table, winning patterns, design recommendations
-- **GEO** — overall score gauge, 6-category breakdown, AI platform readiness chart, prioritized findings
+| File | Producer | Purpose |
+| --- | --- | --- |
+| `research/01-client-brand.md` | `website-intelligence` | Brand snapshot — colors, fonts, tone, messaging, site architecture. |
+| `research/02-competitor-analysis.md` | `website-intelligence` | Top-5 deep scrape, comparison matrix, "Patterns of the top 10%". |
+| `competitive-analysis.html` | `website-intelligence` | Print-ready PDF-export competitive report. |
+| `GEO-AUDIT-REPORT.md` | `geo-audit` | Overall GEO Score, 6-category breakdown, prioritized issues, 30-day plan. |
+| `dashboard.html` | this plugin | The new combined view — two tabs (**Competitive** / **GEO**) rendered from the markdowns above. |
 
-Print the page (Cmd/Ctrl-P) and you get a clean A4 PDF, suitable for client delivery.
+The two Markdown files in `research/` plus `GEO-AUDIT-REPORT.md` are the **implementation source of truth**. Open them in a fresh Claude Code session inside your website's repo and paste:
+
+```
+Read research/02-competitor-analysis.md and GEO-AUDIT-REPORT.md. Implement every Critical and High finding against this codebase.
+```
+
+Claude can act on those reports directly.
 
 ---
 
-## Implementing the recommendations
+## Preview the output
 
-Each finding in both Markdown files follows the same block format:
-
-```markdown
-### Finding: [short title]
-
-- **Severity**: Critical | High | Medium | Low
-- **Category**: Competitive | AI Citability | Technical | Schema | Brand Authority | Content E-E-A-T | Platform
-- **Location**: `https://client.com/page` (or `index.html:42`)
-- **Current state**: [quoted snippet from the site]
-- **Recommended change**:
-  ```html
-  <!-- exact code/copy to insert or replace -->
-  ```
-- **Why**: [1-line rationale linking to research]
-- **Implementation hint**: [where to put it / what file to edit]
-```
-
-To apply the recommendations, open the website's source repo in a new Claude Code session and paste:
-
-```
-Read COMPETITIVE-ANALYSIS.md and GEO-AUDIT.md. Implement every Critical and High finding against this codebase.
-```
-
-That's the whole point of the format — Claude can act on it without asking follow-up questions.
+See `skills/business-audit/examples/sample-audit/` for a complete realistic audit on a fictional brand. Open `dashboard.html` in a browser to see the dashboard format. Read the two `.md` files to see the finding-block shape.
 
 ---
 
-## What's inside
+## What the audit covers
 
-```
-business-audit/
-├── .claude-plugin/plugin.json
-├── README.md
-├── LICENSE                                # MIT
-├── .gitignore
-└── skills/
-    ├── business-audit/                    # Orchestrator (entry point)
-    │   ├── SKILL.md
-    │   ├── references/
-    │   ├── templates/
-    │   └── examples/sample-audit/
-    ├── geo-audit/                         # Bundled (verbatim)
-    ├── geo-citability/
-    ├── geo-content/
-    ├── geo-technical/
-    ├── geo-schema/
-    ├── geo-platform-optimizer/
-    ├── geo-brand-mentions/
-    ├── geo-crawlers/
-    └── geo-llmstxt/
-```
+**Competitive intelligence** — brand extraction (logo, colors, typography, tone, messaging), top-10 competitor discovery, top-5 deep scrape, 8-criteria scoring matrix, winning-pattern synthesis.
 
----
+**Generative Engine Optimization (GEO)** — weighted score across 6 categories:
 
-## Sample output
+| Category | Weight |
+| --- | --- |
+| AI Citability | 25% |
+| Brand Authority | 20% |
+| Content E-E-A-T | 20% |
+| Technical GEO | 15% |
+| Schema & Structured Data | 10% |
+| Platform Optimization | 10% |
 
-See `skills/business-audit/examples/sample-audit/` for a complete realistic example for a fictional business — two Markdown files plus the rendered dashboard. Open `dashboard.html` in a browser to see exactly what your friends will get.
+Per-platform readiness for Google AI Overviews, ChatGPT, Perplexity, Gemini, and Bing Copilot. Competitor benchmark on key signals (schema coverage, `llms.txt`, AI crawler access, top-page citability).
 
 ---
 
 ## License
 
-MIT. Fork it, ship it, improve it. PRs welcome.
+MIT. Fork it, ship it, improve it.
+
+---
+
+Made with care by **Lucid**.

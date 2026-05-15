@@ -1,177 +1,120 @@
-# Business Audit — Detailed Workflow
+# Business Audit — Orchestration in Detail
 
-This file expands the 6-phase pipeline in `SKILL.md` with edge cases and concrete steps. Read this if anything in the main SKILL.md is ambiguous.
+This file expands the 3 steps in `SKILL.md` with edge cases and exact file expectations. Read this if anything in the main SKILL.md is ambiguous.
 
----
-
-## Phase 1 — Discovery
-
-### Goals
-- Classify the business type (drives prompt selection in later phases)
-- Build a page inventory (capped at 50)
-- Surface AI-relevant signals visible on the homepage
-
-### Business type classification
-
-Detect from homepage signals:
-
-| Type | Signals |
-| --- | --- |
-| `saas` | Pricing page with tiers, "Start free trial", G2/Capterra links, login link in nav, `software/SoftwareApplication` schema |
-| `local` | Physical address in footer, phone number prominent, hours of operation, "Book appointment" CTA, `LocalBusiness` schema |
-| `ecommerce` | Product cards on home, "Add to cart", `Product` schema, shop nav item |
-| `publisher` | Article cards, "Latest posts", author bylines, dates, `Article` / `BlogPosting` schema |
-| `agency` | "Our work" / case studies, "Get a quote" CTA, services list, no pricing |
-| `hybrid` | Multiple of the above (e.g., SaaS + agency hybrid) |
-
-### Page inventory
-
-Prefer in this order:
-1. Firecrawl `/map` — returns full URL list
-2. `sitemap.xml` — fetch and parse
-3. Internal-link crawl from homepage (BFS, depth 2, dedup)
-
-Cap at 50 unique pages. Always include: home, about, pricing/services, contact, blog index (if exists), one representative article.
-
-### Homepage signal extraction
-
-Record for the report header:
-- `robots.txt` lines mentioning `GPTBot`, `ClaudeBot`, `PerplexityBot`, `Google-Extended`, `Bytespider`
-- Presence of `https://{domain}/llms.txt`
-- JSON-LD blocks (count, types)
-- `<meta name="robots">` value
-- `X-Robots-Tag` header value
+The plugin **never re-implements** anything from `website-intelligence` or `geo-audit`. It runs them as written, then composes a new HTML view from what they wrote.
 
 ---
 
-## Phase 2 — Client Analysis (parallel)
+## Step 1 — `website-intelligence` Phases 1–3
 
-Run 2a and 2b concurrently. They don't depend on each other.
+### Why we stop at Phase 3
 
-### 2a. Brand & content extraction
+`website-intelligence` is a full-stack skill: Phases 1–3 produce the research deliverables (brand snapshot, competitor analysis, PDF-ready report), Phases 4–6 build a new website. This plugin is **audit-only** — Phase 4's "Build Brief & Approval" is the hard stop. Skip it and everything below.
 
-Follow `~/.claude/skills/website-intelligence/SKILL.md` lines 78–106 for the exact extraction prompt. Output goes into the `COMPETITIVE-ANALYSIS.md` under "Client snapshot".
+### Invoking the skill
 
-Minimum captured fields:
-- `company_name`
-- `logo_url`
-- `colors`: { primary, secondary, accent, background, text } as hex
-- `fonts`: { heading, body } with weights
-- `tone`: one-word descriptor
-- `headline`, `subhead`, `primary_cta_label`, `primary_cta_destination`
-- `nav_items`: array of strings
-- `social_proof`: { testimonials_count, customer_logos_count, case_studies_count, review_aggregator_links }
-- `conversion_strategy`: one-paragraph summary
+Read `../website-intelligence/SKILL.md` and execute the phases as written. When prompted by that skill for the client URL and niche, use the inputs the user gave this orchestrator.
 
-### 2b. GEO audit
+### Files it must produce
 
-Invoke the bundled `geo-audit` skill. Pass it the page inventory from Phase 1. It will run all 6 sub-audits and return:
-- `overall_score` (0–100)
-- `category_scores`: { citability, brand_authority, eeat, technical, schema, platform_optimization }
-- `platform_readiness`: { google_aio, chatgpt, perplexity, gemini, bing_copilot } each 0–100
-- `findings`: array of finding objects with all 6 implementation-ready fields
+After Phase 3 finishes, these must exist in the working directory:
 
----
+| Path | Producer | Used by dashboard tab |
+| --- | --- | --- |
+| `research/01-client-brand.md` | `website-intelligence` Phase 1 | Competitive |
+| `research/02-competitor-analysis.md` | `website-intelligence` Phase 2 | Competitive |
+| `competitive-analysis.html` | `website-intelligence` Phase 3 | (kept as the source skill's original deliverable; not consumed by the dashboard) |
 
-## Phase 3 — Competitor Discovery
+If any of these is missing after Phase 3, the source skill failed — stop and report the error.
 
-### Search strategies (try in order)
+### Edge cases
 
-1. **Direct competitor query** — Firecrawl search for `"{niche} alternatives to {client_name}"` and `"best {niche} companies 2026"`.
-2. **Category query** — Search `"top {niche} {business_type}"` (e.g., "top dev tooling SaaS").
-3. **Local query** (if `business_type == local`) — Search `"{niche} {city}"`.
-
-Aim for 10 unique candidates. Skip:
-- The client itself
-- Aggregator/directory sites (G2, Capterra, Yelp) unless they are the niche
-- Domain parkers and 404s
-
-### Scoring
-
-Score each candidate 1–10 across the 8 criteria in `competitor-scoring.md`. Total possible: 80.
-
-Pick the top 5 by total score. If there's a tie at position 5, prefer the one with the higher "Search visibility" sub-score (they're the loudest competitor).
+- **Phase 2 finds fewer than 5 competitors** → that's the source skill's problem to handle. Use whatever count it returned. The dashboard renders 1–5 competitor cards based on what's in `02-competitor-analysis.md`.
+- **`website-intelligence` asks for approval at Phase 4** → answer "stop here, the user only wants the audit". Do not continue.
 
 ---
 
-## Phase 4 — Competitor Deep Dive (parallel)
+## Step 2 — `geo-audit` (full)
 
-Run all 5 competitors in parallel (separate Agent calls if you want, or interleaved scrapes).
+### Invoking the skill
 
-### Per competitor
+Read `../geo-audit/SKILL.md` and execute all three phases:
 
-**Brand & content (lightweight):**
-- Scrape homepage + 2 key pages
-- Extract: colors (hex), fonts, headline (verbatim), primary CTA, design aesthetic in one line, total word count across the 3 pages
+1. Discovery & Reconnaissance — homepage fetch, business-type classification, 50-page crawl
+2. Parallel Subagent Delegation — `geo-citability`, `geo-content`, `geo-technical`, `geo-schema`, `geo-platform-optimizer`, `geo-brand-mentions`, `geo-crawlers`, `geo-llmstxt` (all bundled in this plugin at `../geo-*`)
+3. Score Aggregation & Report Generation
 
-**GEO mini-audit:**
-- Call only these 4 sub-skills: `geo-citability` (top page), `geo-schema`, `geo-crawlers`, `geo-llmstxt`
-- Compute a synthetic "competitor GEO score" = average of the 4 sub-scores. Note this is approximate — flag it as such in the report.
+### File it must produce
 
----
+| Path | Producer | Used by dashboard tab |
+| --- | --- | --- |
+| `GEO-AUDIT-REPORT.md` | `geo-audit` Phase 3 | GEO |
 
-## Phase 5 — Synthesis
+### Edge cases
 
-### Implementation-ready findings
-
-Every finding in both files MUST conform to `implementation-format.md`. Use the template's pre-formatted Markdown block.
-
-### COMPETITIVE-ANALYSIS.md generation
-
-Order: executive summary → client snapshot → 5 competitor profiles → comparison matrix → patterns → findings (sorted by severity desc) → quick wins.
-
-Aim for 40–80 findings total across both files combined. Quality > quantity — if you have 200 nitpicks, cluster them.
-
-### GEO-AUDIT.md generation
-
-Order: executive summary → score breakdown table → platform readiness table → competitor benchmark table → findings (sorted by severity desc) → 30-day action plan.
-
-Always include the competitor benchmark — that's the killer comparison the user actually wants.
+- **Site is JavaScript-rendered and crawlers can't see content** → `geo-audit` will write that finding into the report itself. Pass it through to the dashboard.
+- **Site is unreachable** → `geo-audit` will error out. Don't proceed to Step 3; surface the error.
 
 ---
 
-## Phase 6 — Dashboard Render
+## Step 3 — Render `dashboard.html`
 
-### Token replacement
+### Data extraction
 
-The template has `{{TOKEN}}` placeholders. Use a simple string-replace pass — no fancy templating engine. After replacement, grep for `{{` to confirm none remain.
+Read the three Markdown files and extract the values listed in `SKILL.md`'s "Token replacement" section.
 
-### `{{COMPETITIVE_HTML}}` and `{{GEO_HTML}}`
+Useful patterns:
+- The GEO Score is on a line like `**Overall GEO Score: 47/100 (Poor)**` — extract integer 47 and word "Poor".
+- The Score Breakdown table is a standard Markdown table. Parse it row-by-row.
+- Issues are under `## Critical Issues`, `## High Priority Issues`, etc. Count entries per section.
+- Competitor data in `02-competitor-analysis.md` follows the table format from `website-intelligence`'s `references/competitor-scoring.md` — header row, one row per competitor, total column.
 
-These are the largest tokens. They contain server-rendered HTML for each tab's content. Construct them by:
+### Server-side render
 
-1. Build competitor cards as `<div class="card"><h3>{name}</h3>...</div>`.
-2. Build the comparison matrix as a `<table>`.
-3. Render findings as `<details>` blocks (collapsed by default, severity color in summary).
-4. Concatenate into the appropriate `{{*_HTML}}` token.
+This plugin produces a **static HTML file**. You do not embed a Markdown parser. You read the source Markdown, structure the data, and emit HTML directly into the template tokens. See `examples/sample-audit/dashboard.html` for the exact shape.
 
-Keep it semantic — the dashboard should be readable even with CSS disabled.
+For each finding in the GEO report, emit:
+
+```html
+<details class="finding" data-severity="critical">
+  <summary>
+    <span class="severity-tag" data-severity="critical">Critical</span>
+    [title from the issue]
+  </summary>
+  <div class="finding-body">
+    [body content — pages affected, recommended fix]
+  </div>
+</details>
+```
 
 ### Verification
 
-After write:
-- `grep -n '{{' dashboard.html` → must return nothing
-- Open in browser, click both tabs, scroll through both
-- File > Print → verify A4 preview is clean
-- File size < 500 KB (no external assets)
+After writing `dashboard.html`:
+
+```bash
+grep -n '{{' dashboard.html        # must return nothing
+```
+
+Open in a browser:
+- Both tabs render
+- Tab switcher works (click "GEO" → competitive panel hides, GEO panel shows)
+- Print preview is clean A4 (margins, no overflow)
+- File size < 500 KB
+
+If any check fails, fix before declaring the audit complete.
 
 ---
 
-## Edge cases
+## Final working-directory state
 
-### Client site is unreachable
-- 5xx / timeout → retry once with 30s timeout
-- Still failing → ask user to confirm URL; if confirmed bad, abort with a friendly error
-- Cloudflare bot wall → fall back to WebFetch; note in report header
+```
+research/
+  01-client-brand.md           ← website-intelligence
+  02-competitor-analysis.md    ← website-intelligence
+competitive-analysis.html      ← website-intelligence
+GEO-AUDIT-REPORT.md            ← geo-audit
+dashboard.html                 ← this plugin (the new combined view)
+```
 
-### Niche is too vague
-- E.g., user says "tech company" → ask for a more specific niche before proceeding
-- Examples of good niches: "B2B SaaS for engineering teams", "DTC skincare for men", "local dental practice in Austin", "Substack for science writers"
-
-### Fewer than 10 competitor candidates found
-- Run a broader search with the next-level-up category (e.g., "dev tooling" → "developer tools")
-- If still <5 candidates, audit what you have and flag the small sample size in the report
-
-### GEO audit returns score 0 / errors
-- Likely a JavaScript-rendered SPA — note "JS-rendered site, AI crawlers cannot index" as a Critical finding
-- Still produce the report with whatever signals are extractable
+The two `.md` files in `research/` plus `GEO-AUDIT-REPORT.md` are the **implementation source of truth**. They are what a downstream Claude session reads to apply changes. The dashboard is for humans.

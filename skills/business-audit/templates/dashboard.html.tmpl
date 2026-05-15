@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Business Audit — {{CLIENT_NAME}}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --ink: #0a0a0a;
+      --paper: #f6f4f0;
+      --accent: #c45d3e;
+      --accent-light: #e8a48e;
+      --muted: #8a8580;
+      --divider: #d6d2cc;
+      --card: #fffefa;
+      --shadow: rgba(10, 10, 10, 0.06);
+      --severity-critical: #c45d3e;
+      --severity-high: #d97706;
+      --severity-medium: #ca8a04;
+      --severity-low: #6b7280;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+
+    header {
+      padding: 5rem 0 2.5rem;
+      border-bottom: 1px solid var(--divider);
+      position: relative;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 1px;
+      height: 60px;
+      background: linear-gradient(to bottom, transparent, var(--accent));
+    }
+
+    .eyebrow {
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 500;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(2.4rem, 5vw, 3.8rem);
+      font-weight: 400;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    h1 em { color: var(--accent); font-style: italic; }
+
+    .meta {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-top: 1rem;
+    }
+
+    .meta span strong { color: var(--ink); font-weight: 500; }
+
+    .chips {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.8rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      background: var(--card);
+      border: 1px solid var(--divider);
+    }
+
+    .chip .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--severity-low);
+    }
+
+    .chip[data-severity="critical"] .dot { background: var(--severity-critical); }
+    .chip[data-severity="high"] .dot { background: var(--severity-high); }
+    .chip[data-severity="medium"] .dot { background: var(--severity-medium); }
+    .chip[data-severity="low"] .dot { background: var(--severity-low); }
+
+    .tabs {
+      display: flex;
+      gap: 2.5rem;
+      border-bottom: 1px solid var(--divider);
+      margin: 3rem 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .tab {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 1rem 0;
+      cursor: pointer;
+      color: var(--muted);
+      border: none;
+      background: none;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+      font-weight: 500;
+    }
+
+    .tab[aria-selected="true"] {
+      color: var(--ink);
+      border-bottom-color: var(--accent);
+    }
+
+    .panel { padding-bottom: 5rem; }
+    .panel[hidden] { display: none; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--divider);
+      border-radius: 16px;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+      transition: box-shadow 0.3s ease;
+    }
+
+    .card:hover { box-shadow: 0 12px 40px var(--shadow); }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--accent), var(--accent-light));
+      border-radius: 4px 0 0 4px;
+    }
+
+    h2 {
+      font-family: 'Instrument Serif', serif;
+      font-size: 2.2rem;
+      font-weight: 400;
+      line-height: 1.2;
+      margin-bottom: 1.25rem;
+      letter-spacing: -0.015em;
+    }
+
+    h3 {
+      font-family: 'Instrument Serif', serif;
+      font-size: 1.4rem;
+      font-weight: 400;
+      margin-bottom: 0.75rem;
+    }
+
+    h4 {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin: 1.5rem 0 0.75rem;
+    }
+
+    p { margin-bottom: 0.75rem; color: #2f2d2a; font-size: 0.95rem; }
+    p:last-child { margin-bottom: 0; }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .gauge { text-align: center; padding: 2rem 0; }
+
+    .gauge-number {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(4rem, 10vw, 6.5rem);
+      line-height: 1;
+      color: var(--accent);
+      letter-spacing: -0.03em;
+    }
+
+    .gauge-label {
+      font-size: 0.85rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0.5rem 0 1.5rem;
+    }
+
+    .gauge-track {
+      height: 8px;
+      background: var(--divider);
+      border-radius: 4px;
+      max-width: 480px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+
+    .gauge-fill {
+      height: 100%;
+      background: linear-gradient(to right, var(--accent), var(--accent-light));
+      border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 220px 1fr 60px;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .bar-row:last-child { border-bottom: none; }
+    .bar-label { font-size: 0.9rem; }
+    .bar-label small { display: block; color: var(--muted); font-size: 0.75rem; margin-top: 2px; }
+
+    .bar-track { height: 6px; background: var(--divider); border-radius: 3px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--accent); border-radius: 3px; }
+    .bar-value { text-align: right; font-family: 'Instrument Serif', serif; font-size: 1.25rem; color: var(--ink); }
+
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; }
+    th, td { padding: 0.65rem 0.75rem; text-align: left; border-bottom: 1px solid var(--divider); }
+    th { font-weight: 500; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.08em; color: var(--muted); }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr.client-row { background: rgba(196, 93, 62, 0.04); }
+    tr.client-row td { font-weight: 500; }
+
+    .finding {
+      background: var(--card);
+      border: 1px solid var(--divider);
+      border-left: 4px solid var(--severity-low);
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .finding[data-severity="critical"] { border-left-color: var(--severity-critical); }
+    .finding[data-severity="high"] { border-left-color: var(--severity-high); }
+    .finding[data-severity="medium"] { border-left-color: var(--severity-medium); }
+    .finding[data-severity="low"] { border-left-color: var(--severity-low); }
+
+    .finding summary {
+      cursor: pointer;
+      font-weight: 500;
+      list-style: none;
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .finding summary::-webkit-details-marker { display: none; }
+    .finding summary::after { content: '+'; margin-left: auto; color: var(--muted); font-size: 1.25rem; line-height: 1; }
+    .finding[open] summary::after { content: '−'; }
+
+    .severity-tag {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: white;
+      background: var(--severity-low);
+    }
+
+    .severity-tag[data-severity="critical"] { background: var(--severity-critical); }
+    .severity-tag[data-severity="high"] { background: var(--severity-high); }
+    .severity-tag[data-severity="medium"] { background: var(--severity-medium); }
+    .severity-tag[data-severity="low"] { background: var(--severity-low); }
+
+    .finding-body { padding-top: 1rem; font-size: 0.92rem; }
+    .finding-body p { margin-bottom: 0.65rem; }
+    .finding-body code { font-family: 'SF Mono', ui-monospace, monospace; font-size: 0.85em; background: rgba(0,0,0,0.04); padding: 0.1rem 0.35rem; border-radius: 3px; }
+    .finding-body pre { background: rgba(0,0,0,0.04); padding: 1rem; border-radius: 6px; overflow-x: auto; margin: 0.5rem 0 1rem; font-size: 0.85rem; line-height: 1.5; }
+    .finding-body pre code { background: none; padding: 0; }
+
+    .swatches { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.5rem 0 1.5rem; }
+
+    .swatch {
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      border: 1px solid var(--divider);
+      position: relative;
+    }
+
+    .swatch::after {
+      content: attr(data-hex);
+      position: absolute;
+      bottom: -1.2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'SF Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    footer {
+      padding: 3rem 0 4rem;
+      border-top: 1px solid var(--divider);
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    @media (max-width: 640px) {
+      header { padding: 3rem 0 2rem; }
+      h1 { font-size: 2rem; }
+      .tabs { gap: 1.5rem; }
+      .bar-row { grid-template-columns: 1fr; gap: 0.4rem; }
+      .bar-value { text-align: left; }
+    }
+
+    @media print {
+      body::after { display: none; }
+      .tabs { display: none; }
+      .panel { display: block !important; page-break-before: always; }
+      .panel[hidden] { display: block !important; }
+      .panel:first-of-type { page-break-before: avoid; }
+      .finding { page-break-inside: avoid; }
+      .card { page-break-inside: avoid; }
+      @page { size: A4; margin: 1.5cm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <div class="eyebrow">Business Audit</div>
+      <h1><em>{{CLIENT_NAME}}</em></h1>
+      <div class="meta">
+        <span><strong>Site:</strong> {{CLIENT_URL}}</span>
+        <span><strong>Audited:</strong> {{AUDIT_DATE}}</span>
+        <span><strong>GEO Score:</strong> {{GEO_SCORE}}/100 — {{GEO_SCORE_LABEL}}</span>
+      </div>
+      <div class="chips">
+        <span class="chip" data-severity="critical"><span class="dot"></span>{{FINDINGS_COUNT_CRITICAL}} Critical</span>
+        <span class="chip" data-severity="high"><span class="dot"></span>{{FINDINGS_COUNT_HIGH}} High</span>
+        <span class="chip" data-severity="medium"><span class="dot"></span>{{FINDINGS_COUNT_MEDIUM}} Medium</span>
+        <span class="chip" data-severity="low"><span class="dot"></span>{{FINDINGS_COUNT_LOW}} Low</span>
+      </div>
+    </header>
+
+    <nav role="tablist" class="tabs" aria-label="Audit sections">
+      <button class="tab" role="tab" aria-selected="true" data-tab="competitive">Competitive</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="geo">GEO / AI Search</button>
+    </nav>
+
+    <section class="panel" data-panel="competitive" role="tabpanel">
+      {{COMPETITIVE_HTML}}
+    </section>
+
+    <section class="panel" data-panel="geo" role="tabpanel" hidden>
+      {{GEO_HTML}}
+    </section>
+
+    <footer>
+      Generated by the <a href="https://github.com/">business-audit</a> Claude Code plugin · Source of truth: <code>COMPETITIVE-ANALYSIS.md</code> + <code>GEO-AUDIT.md</code>
+    </footer>
+
+  </div>
+
+  <script>
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t === tab ? 'true' : 'false'));
+        document.querySelectorAll('.panel').forEach(p => {
+          p.hidden = p.dataset.panel !== target;
+        });
+      });
+    });
+  </script>
+</body>
+</html>

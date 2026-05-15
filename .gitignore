@@ -1,0 +1,10 @@
+.DS_Store
+.env
+.env.*
+*.key
+secrets/
+output/
+node_modules/
+.omc/
+*.log
+.cache/

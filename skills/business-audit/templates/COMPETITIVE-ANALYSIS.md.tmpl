@@ -1,0 +1,145 @@
+# Competitive Analysis — {{CLIENT_NAME}}
+
+> Audit date: {{AUDIT_DATE}} · Source: business-audit Claude Code plugin
+>
+> This file is the **source of truth for competitive recommendations**. Every finding follows the [implementation-ready format](../references/implementation-format.md) — a downstream Claude Code session can read this and apply the changes mechanically.
+
+---
+
+## Executive summary
+
+[3 sentences. Who the client is, who they're competing against, the single biggest opportunity.]
+
+---
+
+## Client snapshot
+
+**Company:** {{CLIENT_NAME}}
+**URL:** {{CLIENT_URL}}
+**Business type:** [saas | local | ecommerce | publisher | agency | hybrid]
+
+**Brand colors:** `#xxxxxx` (primary) · `#xxxxxx` (secondary) · `#xxxxxx` (accent)
+**Typography:** [Heading font] / [Body font]
+**Tone:** [one-word descriptor]
+**Headline:** "[verbatim]"
+**Primary CTA:** "[label]" → `[destination]`
+**Conversion strategy:** [one paragraph]
+
+---
+
+## Top 5 competitors
+
+### 1. [Competitor name] — [URL]
+- **Colors:** `#xxxxxx`, `#xxxxxx`, `#xxxxxx`
+- **Typography:** [Heading] / [Body]
+- **Headline:** "[verbatim]"
+- **Primary CTA:** "[label]"
+- **Strengths:** [2–3 short bullets]
+- **Weaknesses:** [2–3 short bullets]
+
+### 2. [Competitor name] — [URL]
+[Same fields]
+
+### 3. [Competitor name] — [URL]
+[Same fields]
+
+### 4. [Competitor name] — [URL]
+[Same fields]
+
+### 5. [Competitor name] — [URL]
+[Same fields]
+
+---
+
+## Comparison matrix
+
+| Competitor | Search | Reviews | Design | Mobile | Content | Social Proof | CTA | Speed | **Total** |
+|---|---|---|---|---|---|---|---|---|---|
+| [Competitor 1] | x | x | x | x | x | x | x | x | **xx** |
+| [Competitor 2] | x | x | x | x | x | x | x | x | **xx** |
+| [Competitor 3] | x | x | x | x | x | x | x | x | **xx** |
+| [Competitor 4] | x | x | x | x | x | x | x | x | **xx** |
+| [Competitor 5] | x | x | x | x | x | x | x | x | **xx** |
+| **{{CLIENT_NAME}}** | x | x | x | x | x | x | x | x | **xx** |
+
+---
+
+## Patterns of the top 10%
+
+What ALL top competitors do that {{CLIENT_NAME}} doesn't yet:
+
+1. **[Pattern 1]** — [observation]. Seen on: [Comp 1], [Comp 2], [Comp 3].
+2. **[Pattern 2]** — [observation]. Seen on: [Comp 1], [Comp 4], [Comp 5].
+3. **[Pattern 3]** — [observation]. Seen on: [Comp 2], [Comp 3], [Comp 5].
+
+---
+
+## Prioritized findings
+
+Every finding below uses the [implementation-ready format](../references/implementation-format.md). Apply them in severity order.
+
+### Critical
+
+### Finding: [Title]
+
+- **Severity**: Critical
+- **Category**: Competitive
+- **Location**: `[URL or file:line]`
+- **Current state**: [quoted snippet]
+- **Recommended change**:
+  ```html
+  <!-- exact code/copy -->
+  ```
+- **Why**: [one-sentence rationale]
+- **Implementation hint**: [where to put it]
+
+---
+
+### High
+
+### Finding: [Title]
+
+- **Severity**: High
+- **Category**: Competitive
+- **Location**: `[URL or file:line]`
+- **Current state**: [quoted snippet]
+- **Recommended change**:
+  ```html
+  <!-- exact code/copy -->
+  ```
+- **Why**: [one-sentence rationale]
+- **Implementation hint**: [where to put it]
+
+---
+
+### Medium
+
+[Same block format]
+
+---
+
+### Low
+
+[Same block format]
+
+---
+
+## Quick wins (this week)
+
+5–10 findings the client can ship in under a day each:
+
+- [ ] [Finding title — links to the block above]
+- [ ] [Finding title]
+- [ ] [Finding title]
+- [ ] [Finding title]
+- [ ] [Finding title]
+
+---
+
+## Implementation note for downstream Claude
+
+To apply every Critical and High finding in this file against the website source:
+
+```
+Read COMPETITIVE-ANALYSIS.md. For every finding with Severity Critical or High, apply the Recommended change to the file or selector named in Implementation hint. Skip Medium and Low for now.
+```

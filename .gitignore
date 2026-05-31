@@ -73,3 +73,8 @@ coverage/
 /competitive-analysis.html
 /GEO-AUDIT-REPORT.md
 /dashboard.html
+
+# engine artifacts
+engine/**/__pycache__/
+__pycache__/
+*.pyc

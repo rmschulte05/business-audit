@@ -1,0 +1,749 @@
+{
+  "meta": {
+    "url": "https://stripe.com",
+    "final_url": "https://stripe.com/en-nl",
+    "date": "2026-05-31",
+    "engine_version": "2.0.0",
+    "http_status": 200,
+    "ttfb_ms": 500.4,
+    "pages_analyzed": [
+      "https://stripe.com/en-nl",
+      "https://stripe.com/en-nl/pricing",
+      "https://stripe.com/en-nl/customers/shopify",
+      "https://stripe.com/en-nl/guides",
+      "https://stripe.com/en-nl/guides/best-practices-for-launching-and-scaling-platform-payments",
+      "https://stripe.com/en-nl/guides/introduction-to-monetizing-payments",
+      "https://stripe.com/en-nl/guides/introduction-to-risk-management",
+      "https://stripe.com/en-nl/support-plans"
+    ]
+  },
+  "composite": {
+    "geo_score": 89.0,
+    "rating": "Good",
+    "confidence": 0.518,
+    "score_band": [
+      81.8,
+      96.2
+    ],
+    "business_type": "saas",
+    "weights": {
+      "citability": 0.25,
+      "brand_authority": 0.2,
+      "eeat": 0.15,
+      "technical": 0.15,
+      "schema": 0.1,
+      "platform_optimization": 0.15
+    },
+    "pillars": {
+      "citability": {
+        "key": "citability",
+        "label": "AI Citability",
+        "score": 79.7,
+        "confidence": 0.727,
+        "earned": 63.8,
+        "measured_max": 80.0,
+        "total_max": 110.0,
+        "signals": [
+          {
+            "key": "structure",
+            "label": "Heading hierarchy (H1/H2 structure)",
+            "status": "measured",
+            "max_points": 25.0,
+            "points": 20.0,
+            "value": "2 H1, 5 H2",
+            "detail": "",
+            "evidence": "headings: ['Financial infrastructure to grow your revenue. Accept payments, offer financial services and implement custom revenue models \u2013 from your first transaction to your billionth.', 'Financial infrastructure to grow your revenue. Accept payments, offer financial services and implement custom revenue models \u2013 from your first transaction to your billionth.', 'Flexible solutions for every business model.', 'The backbone of global commerce', 'Powering businesses of all sizes.']",
+            "recommendation": "Use exactly one H1 and multiple descriptive H2s so AI can segment content."
+          },
+          {
+            "key": "question_headings",
+            "label": "Question-style headings (match AI queries)",
+            "status": "measured",
+            "max_points": 15.0,
+            "points": 5.0,
+            "value": 1,
+            "detail": "",
+            "evidence": "['Don&#x27;t code?']",
+            "recommendation": "Add question-form headings ('What is X?', 'How does Y work?')."
+          },
+          {
+            "key": "stat_density",
+            "label": "Statistical density (specific numbers/data)",
+            "status": "measured",
+            "max_points": 20.0,
+            "points": 20.0,
+            "value": "9.6/500 words",
+            "detail": "",
+            "evidence": "examples: ['1,000', '$1', '2025', '99.999%', '$1']",
+            "recommendation": ""
+          },
+          {
+            "key": "content_volume",
+            "label": "Sufficient extractable text on the page",
+            "status": "measured",
+            "max_points": 10.0,
+            "points": 10.0,
+            "value": 1876,
+            "detail": "",
+            "evidence": "",
+            "recommendation": ""
+          },
+          {
+            "key": "citability_coverage",
+            "label": "Site-wide citability coverage (pages with strong answer content)",
+            "status": "measured",
+            "max_points": 10.0,
+            "points": 8.75,
+            "value": "7/8 pages >= 60",
+            "detail": "Median page citability score: 75.0.",
+            "evidence": "https://stripe.com/en-nl=78.6; https://stripe.com/en-nl/pricing=92.9; https://stripe.com/en-nl/customers/shopify=71.4; https://stripe.com/en-nl/guides=64.3; https://stripe.com/en-nl/guides/best-practices-for-launching-and-scaling-platform-payments=78.6; https://stripe.com/en-nl/guides/introduction-to-monetizing-payments=71.4",
+            "recommendation": ""
+          },
+          {
+            "key": "answer_self_containment",
+            "label": "Answer-first / self-contained passages (judged)",
+            "status": "not_measured",
+            "max_points": 20.0,
+            "points": 0.0,
+            "value": null,
+            "detail": "Requires semantic judgment of whether passages stand alone as answers.",
+            "evidence": "",
+            "recommendation": "LLM reviewer scores this from the page text supplied as evidence."
+          },
+          {
+            "key": "uniqueness",
+            "label": "Original data / unique insight (judged)",
+            "status": "not_measured",
+            "max_points": 10.0,
+            "points": 0.0,
+            "value": null,
+            "detail": "Requires judging originality vs. derivative content.",
+            "evidence": "",
+            "recommendation": "LLM reviewer scores this from the page text."
+          }
+        ],
+        "weight": 0.25
+      },
+      "brand_authority": {
+        "score": null,
+        "confidence": 0.0,
+        "weight": 0.2,
+        "status": "absent"
+      },
+      "eeat": {
+        "key": "eeat",
+        "label": "Content E-E-A-T",
+        "score": 90.8,
+        "confidence": 0.722,
+        "earned": 59.0,
+        "measured_max": 65.0,
+        "total_max": 90.0,
+        "signals": [
+          {
+            "key": "trust_signals",
+            "label": "Trust signals (HTTPS, privacy, terms, contact)",
+            "status": "measured",
+            "max_points": 40.0,
+            "points": 34.0,
+            "value": "4/5",
+            "detail": "",
+            "evidence": "HTTPS, Privacy policy link, Contact method, Phone number",
+            "recommendation": "Add missing trust signals: Terms link."
+          },
+          {
+            "key": "authorship",
+            "label": "Author attribution detectable",
+            "status": "measured",
+            "max_points": 10.0,
+            "points": 10.0,
+            "value": "8/8",
+            "detail": "",
+            "evidence": "",
+            "recommendation": ""
+          },
+          {
+            "key": "date_present",
+            "label": "Publication / update date present",
+            "status": "measured",
+            "max_points": 10.0,
+            "points": 10.0,
+            "value": "8/8",
+            "detail": "",
+            "evidence": "",
+            "recommendation": ""
+          },
+          {
+            "key": "about_page",
+            "label": "About page present",
+            "status": "measured",
+            "max_points": 5.0,
+            "points": 5.0,
+            "value": true,
+            "detail": "",
+            "evidence": "",
+            "recommendation": ""
+          },
+          {
+            "key": "expertise_depth",
+            "label": "Expertise & technical depth (judged)",
+            "status": "not_measured",
+            "max_points": 20.0,
+            "points": 0.0,
+            "value": null,
+            "detail": "Requires judging accuracy and depth of subject-matter treatment.",
+            "evidence": "",
+            "recommendation": "LLM reviewer scores from page text + author credentials."
+          },
+          {
+            "key": "experience",
+            "label": "First-hand experience signals (judged)",
+            "status": "not_measured",
+            "max_points": 5.0,
+            "points": 0.0,
+            "value": null,
+            "detail": "Requires judging case studies / first-person accounts.",
+            "evidence": "",
+            "recommendation": ""
+          }
+        ],
+        "weight": 0.15
+      },
+      "technical": {
+        "key": "technical",
+        "label": "Technical GEO",
+        "score": 95.5,
+        "confidence": 0.85,
+        "earned": 81.2,
+        "measured_max": 85.0,
+        "total_max": 100.0,
+        "signals": [
+          {
+            "key": "technical.https",
+            "label": "HTTPS enforced (secure + HTTP redirects to HTTPS)",
+            "status": "measured",
+            "max_points": 8.25,
+            "points": 8.25,
+            "value": true,
+            "detail": "",
+            "evidence": "final=https://stripe.com/en-nl; http_probe->https://stripe.com/en-nl",
+            "recommendation": ""
+          },
+          {
+            "key": "technical.security_headers",
+            "label": "Security headers present",
+            "status": "measured",
+            "max_points": 5.5,
+            "points": 5.5,
+            "value": "5/5",
+            "detail": "",
+            "evidence": "HSTS, CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy",
+            "recommendation": ""
+          },
+          {
+            "key": "technical.canonical",
+            "label": "Canonical link present on homepage",
+            "status": "measured",
+            "max_points": 4.4,
+            "points": 4.4,
+            "value": "https://stripe.com/en-nl",
+            "detail": "",
+            "evidence": "https://stripe.com/en-nl",
+            "recommendation": ""
+          },
+          {
+            "key": "technical.viewport",
+            "label": "Mobile viewport meta tag",
+            "status": "measured",
+            "max_points": 5.5,
+            "points": 5.5,
+            "value": "width=device-width, initial-scale=1, viewport-fit=cover",
+            "detail": "",
+            "evidence": "width=device-width, initial-scale=1, viewport-fit=cover",
+            "recommendation": ""
+          },
+          {
+            "key": "technical.ssr",
+            "label": "Content server-rendered (visible in raw HTML)",
+            "status": "measured",
+            "max_points": 11.0,
+            "points": 11.0,
+            "value": "avg 20.0/20 across 8 pages",
+            "detail": "AI crawlers do not run JavaScript; content must be in the HTML source.",
+            "evidence": "per-page SSR points: [20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0]",
+            "recommendation": ""
+          },
+          {
+            "key": "technical.robots_present",
+            "label": "robots.txt present",
+            "status": "measured",
+            "max_points": 2.75,
+            "points": 2.75,
+            "value": true,
+            "detail": "",
+            "evidence": "",
+            "recommendation": ""
+          },
+          {
+            "key": "technical.sitemap",
+            "label": "XML sitemap reachable at /sitemap.xml",
+            "status": "measured",
+            "max_points": 3.8500000000000005,
+            "points": 0.0,
+            "value": false,
+            "detail": "",
+            "evidence": "",
+            "recommendation": "Publish an XML sitemap and reference it in robots.txt."
+          },
+          {
+            "key": "technical.ttfb",
+            "label": "Server response time (TTFB)",
+            "status": "measured",
+            "max_points": 5.5,
+            "points": 5.5,
+            "value": "500.4 ms",
+            "detail": "Measured server response latency for the homepage.",
+            "evidence": "",
+            "recommendation": ""
+          },
+          {
+            "key": "technical.title_description",
+            "label": "Title and meta description present",
+            "status": "measured",
+            "max_points": 4.4,
+            "points": 4.4,
+            "value": {
+              "title": true,
+              "description": true
+            },
+            "detail": "",
+            "evidence": "title='Stripe | Financial Infrastructure to Grow Your Revenue'; desc='Stripe is a financial services platform that helps all types'",
+            "recommendation": ""
+          },
+          {
+            "key": "technical.compression",
+            "label": "HTTP compression enabled",
+            "status": "measured",
+            "max_points": 2.75,
+            "points": 2.75,
+            "value": "gzip",
+            "detail": "",
+            "evidence": "",
+            "recommendation": ""
+          },
+          {
+            "key": "technical.html_lang",
+            "label": "HTML lang attribute set",
+            "status": "measured",
+            "max_points": 1.1,
+            "points": 1.1,
+            "value": true,
+            "detail": "",
+            "evidence": "",
+            "recommendation": ""
+          },
+          {
+            "key": "crawler_access.tier1_access",
+            "label": "Tier-1 AI crawlers allowed (ChatGPT/Claude/Perplexity)",
+            "status": "measured",
+            "max_points": 12.5,
+            "points": 12.5,
+            "value": "5/5",
+            "detail": "Allowed: GPTBot, OAI-SearchBot, ChatGPT-User, ClaudeBot, PerplexityBot",
+            "evidence": "GPTBot=allowed; OAI-SearchBot=allowed; ChatGPT-User=allowed; ClaudeBot=allowed; PerplexityBot=allowed",
+            "recommendation": ""
+          },
+          {
+            "key": "crawler_access.tier2_access",
+            "label": "Tier-2 AI crawlers allowed (Google-Extended/Apple/Meta/Amazon)",
+            "status": "measured",
+            "max_points": 6.25,
+            "points": 6.25,
+            "value": "5/5",
+            "detail": "",
+            "evidence": "Google-Extended=allowed; GoogleOther=allowed; Applebot-Extended=allowed; Amazonbot=allowed; FacebookBot=allowed",
+            "recommendation": ""
+          },
+          {
+            "key": "crawler_access.no_blanket_block",
+            "label": "No blanket 'Disallow: /' for all user-agents",
+            "status": "measured",
+            "max_points": 3.75,
+            "points": 3.75,
+            "value": true,
+            "detail": "A site-wide Disallow blocks every crawler including AI search.",
+            "evidence": "",
+            "recommendation": ""
+          },
+          {
+            "key": "crawler_access.sitemap_in_robots",
+            "label": "Sitemap referenced in robots.txt",
+            "status": "measured",
+            "max_points": 2.5,
+            "points": 2.5,
+            "value": true,
+            "detail": "",
+            "evidence": "",
+            "recommendation": ""
+          },
+          {
+            "key": "core_web_vitals.cwv_lcp",
+            "label": "Largest Contentful Paint (CWV)",
+            "status": "not_measured",
+            "max_points": 6.0,
+            "points": 0.0,
+            "value": null,
+            "detail": "Needs PSI_API_KEY (free) to measure real CWV.",
+            "evidence": "",
+            "recommendation": "Set PSI_API_KEY to include Core Web Vitals in the score."
+          },
+          {
+            "key": "core_web_vitals.cwv_inp",
+            "label": "Interaction to Next Paint (CWV)",
+            "status": "not_measured",
+            "max_points": 6.0,
+            "points": 0.0,
+            "value": null,
+            "detail": "Needs PSI_API_KEY to measure.",
+            "evidence": "",
+            "recommendation": ""
+          },
+          {
+            "key": "core_web_vitals.cwv_cls",
+            "label": "Cumulative Layout Shift (CWV)",
+            "status": "not_measured",
+            "max_points": 3.0,
+            "points": 0.0,
+            "value": null,
+            "detail": "Needs PSI_API_KEY to measure.",
+            "evidence": "",
+            "recommendation": ""
+          },
+          {
+            "key": "llms_txt.llms_present",
+            "label": "llms.txt file present at /llms.txt",
+            "status": "measured",
+            "max_points": 2.5,
+            "points": 2.5,
+            "value": true,
+            "detail": "Emerging standard (<5% adoption); a low-effort differentiator.",
+            "evidence": "GET https://stripe.com/llms.txt -> 200",
+            "recommendation": ""
+          },
+          {
+            "key": "llms_txt.llms_format",
+            "label": "llms.txt structural validity",
+            "status": "measured",
+            "max_points": 1.5,
+            "points": 1.5,
+            "value": "5/5 format checks",
+            "detail": "",
+            "evidence": "H1 title=ok; blockquote description=ok; at least one ## section=ok; 5+ page entries=ok; absolute URLs=ok",
+            "recommendation": ""
+          },
+          {
+            "key": "llms_txt.llms_depth",
+            "label": "llms.txt coverage depth (entry count)",
+            "status": "measured",
+            "max_points": 1.0,
+            "points": 1.0,
+            "value": 268,
+            "detail": "",
+            "evidence": "",
+            "recommendation": ""
+          }
+        ],
+        "weight": 0.15
+      },
+      "schema": {
+        "key": "schema",
+        "label": "Schema & Structured Data",
+        "score": 100.0,
+        "confidence": 1.0,
+        "earned": 100.0,
+        "measured_max": 100.0,
+        "total_max": 100.0,
+        "signals": [
+          {
+            "key": "json_ld_present",
+            "label": "JSON-LD structured data present",
+            "status": "measured",
+            "max_points": 20.0,
+            "points": 20.0,
+            "value": true,
+            "detail": "",
+            "evidence": "1 ld+json block(s) on homepage; types (site): Answer, ContactPoint, FAQPage, ImageObject, Organization, Person, Place, PostalAddress, Question, WebSite",
+            "recommendation": ""
+          },
+          {
+            "key": "org_schema",
+            "label": "Organization/LocalBusiness schema with required props",
+            "status": "measured",
+            "max_points": 25.0,
+            "points": 25.0,
+            "value": "2/2 required",
+            "detail": "",
+            "evidence": "keys: @id, @type, contactPoint, description, founders, legalName, location, logo, name, sameAs, url",
+            "recommendation": ""
+          },
+          {
+            "key": "sameas_links",
+            "label": "sameAs entity links (Wikipedia/LinkedIn/socials)",
+            "status": "measured",
+            "max_points": 15.0,
+            "points": 15.0,
+            "value": 12,
+            "detail": "",
+            "evidence": "https://en.wikipedia.org/wiki/Stripe,_Inc.; https://finance.yahoo.com/quote/STRI.PVT/; https://github.com/stripe; https://twitter.com/stripe; https://www.bloomberg.com/profile/company/0170016D:US; https://www.crunchbase.com/organization/stripe",
+            "recommendation": ""
+          },
+          {
+            "key": "website_schema",
+            "label": "WebSite schema present",
+            "status": "measured",
+            "max_points": 10.0,
+            "points": 10.0,
+            "value": true,
+            "detail": "",
+            "evidence": "",
+            "recommendation": ""
+          },
+          {
+            "key": "schema_server_rendered",
+            "label": "JSON-LD is in server-rendered HTML",
+            "status": "measured",
+            "max_points": 15.0,
+            "points": 15.0,
+            "value": true,
+            "detail": "Parsed from raw HTML (no JS execution); AI crawlers can read it.",
+            "evidence": "",
+            "recommendation": ""
+          },
+          {
+            "key": "schema_valid_json",
+            "label": "JSON-LD blocks parse as valid JSON",
+            "status": "measured",
+            "max_points": 15.0,
+            "points": 15.0,
+            "value": "1/1 valid",
+            "detail": "",
+            "evidence": "",
+            "recommendation": ""
+          }
+        ],
+        "weight": 0.1
+      },
+      "platform_optimization": {
+        "score": null,
+        "confidence": 0.0,
+        "weight": 0.15,
+        "status": "absent"
+      }
+    }
+  },
+  "raw": {
+    "crawlers": {
+      "robots_url": "https://stripe.com/robots.txt",
+      "robots_status": 200,
+      "robots_bytes": 643,
+      "access_map": {
+        "GPTBot": "allowed",
+        "OAI-SearchBot": "allowed",
+        "ChatGPT-User": "allowed",
+        "ClaudeBot": "allowed",
+        "PerplexityBot": "allowed",
+        "Google-Extended": "allowed",
+        "GoogleOther": "allowed",
+        "Applebot-Extended": "allowed",
+        "Amazonbot": "allowed",
+        "FacebookBot": "allowed"
+      }
+    },
+    "llms_txt": {
+      "llms_url": "https://stripe.com/llms.txt",
+      "status": 200,
+      "present": true,
+      "has_h1": true,
+      "has_description": true,
+      "section_count": 28,
+      "entry_count": 268,
+      "absolute_url_ratio": 1.0,
+      "line_count": 356,
+      "llms_full_present": false
+    },
+    "technical": {
+      "https_final": true,
+      "http_redirects_https": true,
+      "security_headers": [
+        "HSTS",
+        "CSP",
+        "X-Content-Type-Options",
+        "X-Frame-Options",
+        "Referrer-Policy"
+      ],
+      "raw_word_count": 1876,
+      "h1_count": 2,
+      "ssr_pages_full": "8/8",
+      "sitemap_status": 404
+    },
+    "schema": {
+      "ld_json_blocks": 1,
+      "parse_errors": 0,
+      "detected_types": [
+        "Answer",
+        "ContactPoint",
+        "FAQPage",
+        "ImageObject",
+        "Organization",
+        "Person",
+        "Place",
+        "PostalAddress",
+        "Question",
+        "WebSite"
+      ],
+      "detected_types_homepage": [
+        "ContactPoint",
+        "ImageObject",
+        "Organization",
+        "Person",
+        "Place",
+        "PostalAddress",
+        "WebSite"
+      ],
+      "detected_types_by_page": [
+        {
+          "url": "https://stripe.com/en-nl/pricing",
+          "types": [
+            "Answer",
+            "FAQPage",
+            "Question"
+          ]
+        },
+        {
+          "url": "https://stripe.com/en-nl/customers/shopify",
+          "types": []
+        },
+        {
+          "url": "https://stripe.com/en-nl/guides",
+          "types": []
+        },
+        {
+          "url": "https://stripe.com/en-nl/guides/best-practices-for-launching-and-scaling-platform-payments",
+          "types": []
+        },
+        {
+          "url": "https://stripe.com/en-nl/guides/introduction-to-monetizing-payments",
+          "types": []
+        },
+        {
+          "url": "https://stripe.com/en-nl/guides/introduction-to-risk-management",
+          "types": []
+        },
+        {
+          "url": "https://stripe.com/en-nl/support-plans",
+          "types": []
+        }
+      ],
+      "sameas": [
+        "https://en.wikipedia.org/wiki/Stripe,_Inc.",
+        "https://finance.yahoo.com/quote/STRI.PVT/",
+        "https://github.com/stripe",
+        "https://twitter.com/stripe",
+        "https://www.bloomberg.com/profile/company/0170016D:US",
+        "https://www.crunchbase.com/organization/stripe",
+        "https://www.facebook.com/StripeHQ",
+        "https://www.instagram.com/stripehq/",
+        "https://www.linkedin.com/company/stripe/",
+        "https://www.wikidata.org/wiki/Q7624104",
+        "https://youtube.com/@StripeDev",
+        "https://youtube.com/@stripe"
+      ]
+    },
+    "citability": {
+      "word_count": 1876,
+      "heading_count": 55,
+      "question_headings": 1,
+      "stat_count": 36,
+      "stat_density_per_500w": 9.59,
+      "page_scores": [
+        {
+          "url": "https://stripe.com/en-nl",
+          "score": 78.6
+        },
+        {
+          "url": "https://stripe.com/en-nl/pricing",
+          "score": 92.9
+        },
+        {
+          "url": "https://stripe.com/en-nl/customers/shopify",
+          "score": 71.4
+        },
+        {
+          "url": "https://stripe.com/en-nl/guides",
+          "score": 64.3
+        },
+        {
+          "url": "https://stripe.com/en-nl/guides/best-practices-for-launching-and-scaling-platform-payments",
+          "score": 78.6
+        },
+        {
+          "url": "https://stripe.com/en-nl/guides/introduction-to-monetizing-payments",
+          "score": 71.4
+        },
+        {
+          "url": "https://stripe.com/en-nl/guides/introduction-to-risk-management",
+          "score": 57.1
+        },
+        {
+          "url": "https://stripe.com/en-nl/support-plans",
+          "score": 85.7
+        }
+      ],
+      "median_page_score": 75.0
+    },
+    "eeat": {
+      "trust": {
+        "HTTPS": true,
+        "Privacy policy link": true,
+        "Terms link": false,
+        "Contact method": true,
+        "Phone number": true
+      },
+      "author_pages": "8/8",
+      "date_pages": "8/8"
+    },
+    "core_web_vitals": {
+      "source": "PageSpeed Insights",
+      "measured": false
+    },
+    "pages": [
+      {
+        "url": "https://stripe.com/en-nl/pricing",
+        "status": 200
+      },
+      {
+        "url": "https://stripe.com/en-nl/customers/shopify",
+        "status": 200
+      },
+      {
+        "url": "https://stripe.com/en-nl/guides",
+        "status": 200
+      },
+      {
+        "url": "https://stripe.com/en-nl/guides/best-practices-for-launching-and-scaling-platform-payments",
+        "status": 200
+      },
+      {
+        "url": "https://stripe.com/en-nl/guides/introduction-to-monetizing-payments",
+        "status": 200
+      },
+      {
+        "url": "https://stripe.com/en-nl/guides/introduction-to-risk-management",
+        "status": 200
+      },
+      {
+        "url": "https://stripe.com/en-nl/support-plans",
+        "status": 200
+      }
+    ]
+  }
+}

@@ -96,7 +96,7 @@ The two Markdown files in `research/` plus `GEO-AUDIT.json` are the
 inside your website's repo and paste:
 
 ```
-Read research/02-competitor-analysis.md and GEO-AUDIT-REPORT.md. Implement every Critical and High finding against this codebase.
+Read research/02-competitor-analysis.md and GEO-AUDIT-REPORT.md (scores in GEO-AUDIT.json). Implement every Critical and High finding against this codebase.
 ```
 
 Claude can act on those reports directly.

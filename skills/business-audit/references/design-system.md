@@ -120,21 +120,69 @@ The dashboard must print clean on A4. Required `@media print`:
 
 ## Score gauge
 
-A simple horizontal bar with the numeric score above it, color-banded by `--score-*` tokens.
+A simple horizontal bar with the numeric score above it, color-banded by `--score-*` tokens. Directly under the rating it carries the **honesty signal**: the confidence band (`score_band`) and the share of the score backed by direct measurement (`confidence`). A muted caption defines what "measured" means — this is the core selling point of the audit.
 
 ```html
 <div class="gauge">
   <div class="gauge-number">{{GEO_SCORE}}</div>
   <div class="gauge-label">{{GEO_SCORE_LABEL}}</div>
+  <div class="gauge-band">Range <strong>39–55</strong> · <strong>71%</strong> measured</div>
   <div class="gauge-track">
     <div class="gauge-fill" style="width: {{GEO_SCORE}}%"></div>
+  </div>
+  <p class="gauge-caption">Confidence is the share of the score backed by direct measurement. The rest is marked "Not measured" and excluded from the score — never guessed.</p>
+</div>
+```
+
+- `.gauge-band` — muted line under the rating. Use `score_band` `[lo, hi]` for the range and `round(confidence * 100)` for the measured percentage. Wrap the numbers in `<strong>` (renders in `--ink`).
+- `.gauge-caption` — small muted sentence (max-width 480px, centered) defining confidence.
+- Put **only** the rating in `.gauge-label`; do not append the threshold legend there.
+- When `geo_score` or `score_band` is `null` (Insufficient Data), render `—` for the range, set `.gauge-fill` width to `0%`, and never print the literal `null`.
+
+## Score breakdown (per-category bars)
+
+Each pillar row shows its weight **and** its confidence in the `.bar-label small` sub-caption. When a pillar score is `null` (`status: "absent"`), add the `bar-row--unmeasured` modifier and render the literal text `Not measured` in `.bar-value` — never `0`, and never a 0%-width fill (that reads as a real low score).
+
+```html
+<div class="card">
+  <!-- measured pillar -->
+  <div class="bar-row">
+    <div class="bar-label">AI Citability <small>25% weight · 84% measured</small></div>
+    <div class="bar-track"><div class="bar-fill" style="width: 52%"></div></div>
+    <div class="bar-value">52</div>
+  </div>
+  <!-- not-measured pillar (score is null) -->
+  <div class="bar-row bar-row--unmeasured">
+    <div class="bar-label">Schema &amp; Structured Data <small>10% weight · not measured</small></div>
+    <div class="bar-track"></div>
+    <div class="bar-value">Not measured</div>
   </div>
 </div>
 ```
 
+- `.bar-label small` — `"{weight}% weight · {confidence}% measured"`, where confidence is `round(pillars[key].confidence * 100)`. For absent pillars use `"{weight}% weight · not measured"`.
+- `.bar-row--unmeasured` — dims `.bar-track` (opacity 0.4) and restyles `.bar-value` as a muted uppercase `Not measured` label. Leave `.bar-track` empty (no `.bar-fill`).
+
 ## Responsive
 
 Mobile breakpoint at 640px. Tabs stack vertically below that; cards go full-width.
+
+---
+
+## Header meta tokens
+
+The header `.meta` row carries the first-paint honesty signal (visible before the GEO tab is opened) via four GEO tokens, all sourced from `GEO-AUDIT.json` → `composite`:
+
+| Token | Source | Null-safe rendering |
+|-------|--------|---------------------|
+| `{{GEO_SCORE}}` | `composite.geo_score` (rounded) | `—` |
+| `{{GEO_SCORE_BAND}}` | `round((score_band[1] - score_band[0]) / 2)` — the `±` half-width | `—` |
+| `{{GEO_SCORE_LABEL}}` | `composite.rating` | `Insufficient Data` |
+| `{{GEO_CONFIDENCE_PCT}}` | `round(composite.confidence * 100)` | `0` |
+
+Renders as `GEO Score: 47 ± 8/100 — Poor` and `71% measured`. When `geo_score`/`score_band` is `null`, render `—` (not the literal `null`).
+
+The full confidence band and per-pillar confidence inside the GEO tab are model-rendered into `{{GEO_HTML}}` using the `.gauge-band`, `.gauge-caption`, and `.bar-row--unmeasured` classes above — they are not token substitutions.
 
 ---
 

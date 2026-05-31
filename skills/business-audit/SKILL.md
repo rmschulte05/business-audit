@@ -16,9 +16,19 @@ You MUST use the bundled source skills exactly as they are. Do not paraphrase, d
 
 ---
 
-## Required: Firecrawl MCP
+## Dependencies
 
-Both source skills require Firecrawl MCP. Before doing anything else, verify it's available — look for `mcp__firecrawl__scrape`, `mcp__firecrawl__map`, `mcp__firecrawl__search` in your tool list. If missing, stop and tell the user to set up Firecrawl (see README).
+- **Step 1 (`website-intelligence`) requires Firecrawl MCP** for scraping the
+  client and discovering competitors. Verify it's available — look for
+  `mcp__firecrawl__scrape`, `mcp__firecrawl__map`, `mcp__firecrawl__search`. If
+  missing, the competitive half cannot run; tell the user to set up Firecrawl
+  (see README).
+- **Step 2 (`geo-audit`) does NOT need Firecrawl.** It runs the bundled
+  deterministic Python engine (standard library only) plus `WebFetch`/`WebSearch`.
+  So if Firecrawl is unavailable you can still deliver the full GEO half.
+- **Python 3** must be on PATH for the GEO engine. An optional free `PSI_API_KEY`
+  ([PageSpeed Insights](https://developers.google.com/speed/docs/insights)) adds
+  real Core Web Vitals.
 
 ---
 
@@ -54,22 +64,29 @@ Keep all three files. They are the source of truth for the competitive half of t
 
 ---
 
-## STEP 2 — Run `geo-audit` (full)
+## STEP 2 — Run `geo-audit` (engine-driven)
 
-Read and execute `../geo-audit/SKILL.md` against the same client URL.
+Read and execute `../geo-audit/SKILL.md` against the same client URL. That skill:
 
-Run all three phases of `geo-audit`:
-1. Discovery & Reconnaissance
-2. Parallel Subagent Delegation (all 6 categories)
-3. Score Aggregation & Report Generation
+1. **Runs the deterministic engine** (`engine/geo_audit/run_audit.py`) to measure
+   everything objectively observable (AI crawler access, schema from raw HTML,
+   technical, countable content, llms.txt, and Core Web Vitals if `PSI_API_KEY` is
+   set). → `geo-engine.json`
+2. **Adds LLM judgment** only for the signals the engine marks `not_measured`
+   (semantic answer quality, expertise, and off-site brand/platform presence),
+   each backed by verified evidence. → `llm-scores.json`
+3. **Merges and reports** by re-running the engine with `--llm-scores`, producing
+   a reproducible composite score with a confidence band.
 
 It will produce:
 
 ```
-GEO-AUDIT-REPORT.md    # Full audit: overall score, 6-category breakdown, prioritized issues, 30-day plan
+GEO-AUDIT.json         # Machine-readable: composite, per-pillar scores, every signal + evidence
+GEO-AUDIT-REPORT.md    # Client-facing: overall score + confidence band, 6-pillar breakdown, fixes, plan
 ```
 
-This file is the source of truth for the AI-visibility half of the audit.
+**`GEO-AUDIT.json` is the source of truth for the AI-visibility half** — it holds
+the exact numbers. `GEO-AUDIT-REPORT.md` is its human-readable rendering.
 
 ---
 
@@ -92,13 +109,28 @@ Now read the three Markdown files produced by the source skills and render `dash
 - The comparison-table scores
 - The "Patterns of the Top 10%" section (3–5 patterns)
 
-### Extract from `GEO-AUDIT-REPORT.md`
-- `geo_score` (integer 0–100, from `Overall GEO Score: X/100`)
-- `geo_rating` (the rating word — Excellent / Good / Fair / Poor / Critical)
-- The 6-category Score Breakdown table: `citability`, `brand_authority`, `eeat`, `technical`, `schema`, `platform_optimization` each as integer 0–100
-- All Critical / High / Medium / Low issues with their text and any recommended fixes
-- Quick Wins list
-- 30-Day Action Plan (weekly themes)
+### Extract from `GEO-AUDIT.json` (preferred — exact, machine-readable)
+
+Read the deterministic JSON rather than regex-parsing the report. Values live
+under `composite`:
+
+- `geo_score` = `composite.geo_score` (may be a decimal; round for display)
+- `geo_rating` = `composite.rating` (Excellent / Good / Fair / Poor / Critical)
+- `confidence` = `composite.confidence` (0–1) and `composite.score_band` ([low, high])
+- The 6 pillars from `composite.pillars`: `citability`, `brand_authority`, `eeat`,
+  `technical`, `schema`, `platform_optimization` — each has `.score` (0–100 or
+  `null` if not measured) and `.confidence`
+- Per-signal fixes: iterate `composite.pillars[*].signals[*]` where
+  `recommendation` is non-empty
+
+Render the **confidence band** on the dashboard next to the score — it's a key
+selling point that the number is honest. If a pillar `.score` is `null`, show
+"Not measured", not 0.
+
+Fall back to `GEO-AUDIT-REPORT.md` only if the JSON is missing: the canonical line
+is `**Overall GEO Score: X/100 (Rating)**` and the breakdown table has a `Key`
+column with the snake_case pillar keys. Pull the issues, Quick Wins, and 30-Day
+Action Plan from the report prose.
 
 ### Token replacement
 Open `templates/dashboard.html.tmpl` and replace these tokens:
@@ -108,7 +140,7 @@ Open `templates/dashboard.html.tmpl` and replace these tokens:
 | `{{CLIENT_NAME}}` | `01-client-brand.md` Company |
 | `{{CLIENT_URL}}` | user input |
 | `{{AUDIT_DATE}}` | today's date in ISO format (YYYY-MM-DD) |
-| `{{GEO_SCORE}}` | integer from `GEO-AUDIT-REPORT.md` |
+| `{{GEO_SCORE}}` | `composite.geo_score` from `GEO-AUDIT.json` (rounded) |
 | `{{GEO_SCORE_LABEL}}` | rating word |
 | `{{FINDINGS_COUNT_CRITICAL}}` | count of Critical issues in GEO report + count of competitive gaps you flag as Critical (cap at 5) |
 | `{{FINDINGS_COUNT_HIGH}}` | same for High |
@@ -151,11 +183,14 @@ research/
   01-client-brand.md           ← from website-intelligence
   02-competitor-analysis.md    ← from website-intelligence
 competitive-analysis.html      ← from website-intelligence
-GEO-AUDIT-REPORT.md            ← from geo-audit
+GEO-AUDIT.json                 ← from geo-audit (machine-readable scores)
+GEO-AUDIT-REPORT.md            ← from geo-audit (client-facing report)
 dashboard.html                 ← from this skill (NEW combined view)
 ```
 
-The two source skills' Markdown files are the source of truth for implementation. `dashboard.html` is the human-readable view.
+The source skills' outputs are the source of truth for implementation
+(`GEO-AUDIT.json` for the GEO numbers, the research Markdown for the competitive
+half). `dashboard.html` is the human-readable view.
 
 ---
 
@@ -179,4 +214,9 @@ The two source skills' Markdown files are the source of truth for implementation
 ## BUNDLED SOURCE SKILLS
 
 - `../website-intelligence/` — competitor analysis (run Phases 1–3 only)
-- `../geo-audit/` — GEO scoring (run fully); orchestrates `../geo-citability/`, `../geo-content/`, `../geo-technical/`, `../geo-schema/`, `../geo-platform-optimizer/`, `../geo-brand-mentions/`, `../geo-crawlers/`, `../geo-llmstxt/`
+- `../geo-audit/` — GEO scoring (run fully). Drives the deterministic engine at
+  `<plugin-root>/engine/` for measurement, and uses `../geo-citability/`,
+  `../geo-content/`, `../geo-technical/`, `../geo-schema/`,
+  `../geo-platform-optimizer/`, `../geo-brand-mentions/`, `../geo-crawlers/`,
+  `../geo-llmstxt/` as **reference rubrics** for the LLM-judged signals.
+- `../../engine/` — the deterministic GEO scoring engine (Python, stdlib-only).

@@ -1,6 +1,6 @@
 ---
 name: geo-audit
-description: Full website GEO+SEO audit with parallel subagent delegation. Orchestrates a comprehensive Generative Engine Optimization audit across AI citability, platform analysis, technical infrastructure, content quality, and schema markup. Produces a composite GEO Score (0-100) with prioritized action plan.
+description: Full website GEO+SEO audit. Runs a deterministic measurement engine for everything objectively observable (AI crawler access, schema, technical, countable content) and adds LLM judgment only for what truly needs it (semantic quality, off-site brand/platform presence). Produces a reproducible composite GEO Score (0-100) with an explicit confidence band and a prioritized action plan.
 allowed-tools:
   - Read
   - Grep
@@ -14,354 +14,265 @@ allowed-tools:
 
 ## Purpose
 
-This skill performs a comprehensive Generative Engine Optimization (GEO) audit of any website. GEO is the practice of optimizing web content so that AI systems (ChatGPT, Claude, Perplexity, Gemini, etc.) can discover, understand, cite, and recommend it. This audit measures how well a site performs across all GEO dimensions and produces an actionable improvement plan.
+This skill performs a comprehensive Generative Engine Optimization (GEO) audit of
+any website. GEO is the practice of optimizing content so AI systems (ChatGPT,
+Claude, Perplexity, Gemini, Copilot) can discover, understand, cite, and recommend
+it. The audit produces a **reproducible** GEO Score: run it twice on the same site
+and the measured portion of the score is identical.
 
-## Key Insight
+## The core principle: measure first, judge second, never fabricate
 
-Traditional SEO optimizes for search engine rankings. GEO optimizes for AI citation and recommendation. Sites that score high on GEO metrics see 30-115% more visibility in AI-generated responses (Georgia Tech / Princeton / IIT Delhi 2024 study). The two disciplines overlap but have distinct requirements.
+The score has two layers:
+
+1. **Measured layer (deterministic engine).** A bundled Python engine collects
+   objectively observable evidence — robots.txt AI-crawler rules, JSON-LD parsed
+   from raw HTML, HTTPS/headers/SSR/sitemap/TTFB, countable content signals
+   (heading hierarchy, statistic density), llms.txt, and Core Web Vitals (when a
+   PageSpeed key is set). These scores are exact and repeatable.
+2. **Judged layer (you, the LLM).** Only the signals that genuinely require
+   judgment — semantic answer quality, originality, expertise depth, and
+   **off-site brand/platform presence** — are scored by you, each backed by
+   evidence. The engine marks these `not_measured` until you fill them.
+
+Every claim must be backed by evidence. If something cannot be measured or
+verified, it stays `not_measured` and **lowers the confidence band** — it is never
+guessed. A fabricated metric in a paid audit is a liability; this design removes
+the temptation structurally.
 
 ---
 
-## Audit Workflow
+## Locate the engine
 
-### Phase 1: Discovery and Reconnaissance
+The engine ships with this plugin at `<plugin-root>/engine/`. This skill lives at
+`<plugin-root>/skills/geo-audit/`, so the engine is two directories up. Locate it
+robustly:
 
-**Step 1: Fetch Homepage and Detect Business Type**
+```bash
+ENGINE_DIR="$(python3 - <<'PY'
+import os, glob
+roots = [os.getcwd(), os.path.expanduser("~/.claude/plugins"), os.path.expanduser("~/.claude")]
+cands = []
+for r in roots:
+    cands += glob.glob(os.path.join(r, "**", "engine", "geo_audit", "run_audit.py"), recursive=True)
+print(os.path.dirname(os.path.dirname(cands[0])) if cands else "")
+PY
+)"
+echo "Engine: ${ENGINE_DIR:-NOT FOUND}"
+```
 
-1. Use WebFetch to retrieve the homepage at the provided URL.
-2. Extract the following signals:
-   - Page title, meta description, H1 heading
-   - Navigation menu items (reveals site structure)
-   - Footer content (reveals business info, location, legal pages)
-   - Schema.org markup on homepage (Organization, LocalBusiness, etc.)
-   - Pricing page link (SaaS indicator)
-   - Product listing patterns (E-commerce indicator)
-   - Blog/resource section (Publisher indicator)
-   - Service pages (Agency indicator)
-   - Address/phone/Google Maps embed (Local business indicator)
+If `ENGINE_DIR` is empty, tell the user the plugin is not fully installed and stop.
+All engine commands below run with `PYTHONPATH="$ENGINE_DIR"`.
 
-3. Classify the business type using these patterns:
+---
 
-| Business Type | Detection Signals |
+## Phase 1 — Run the deterministic engine
+
+Detect the business type first (see the classification table at the end), then run:
+
+```bash
+PYTHONPATH="$ENGINE_DIR" python3 -m geo_audit.run_audit "<URL>" \
+    --type <local|saas|ecommerce|publisher|agency> \
+    --date "$(date +%F)" \
+    --out-json geo-engine.json
+```
+
+Optional but recommended — real Core Web Vitals (free Google key):
+
+```bash
+export PSI_API_KEY=...   # https://developers.google.com/speed/docs/insights
+```
+
+`geo-engine.json` now contains:
+- `composite` — the measured GEO score, per-pillar scores, confidence band, and
+  every signal with `status` (`measured` / `not_measured`), points, evidence, and
+  recommendation.
+- `raw` — the underlying data (parsed schema types, robots access map, captured
+  homepage word counts/headings, etc.) you will read for the judgment phase.
+
+If `meta.error` is present (site unreachable or blocks all crawlers), report that
+honestly and stop — do not invent a score.
+
+---
+
+## Phase 2 — Add LLM judgment (only the `not_measured` signals)
+
+Read `geo-engine.json`. For each signal with `"status": "not_measured"`, supply a
+score **backed by evidence**, following `engine/LLM_SCORES.md`. There are exactly
+two kinds:
+
+### 2a. On-page judgment signals (read the captured page text)
+
+Using the homepage text and headings in `geo-engine.json` `raw` (and WebFetch for
+key inner pages — articles, service/product, about), score:
+
+| Signal | Max | What you are judging |
+|---|---|---|
+| `citability.answer_self_containment` | 20 | Do top sections open with a 1-2 sentence direct answer that stands alone? |
+| `citability.uniqueness` | 10 | Original data/insight vs. derivative restatement? |
+| `eeat.expertise_depth` | 20 | Genuine technical depth, correct terminology, explained methodology? |
+| `eeat.experience` | 5 | First-hand accounts, case studies with specifics? |
+
+Use the rubrics in the bundled reference skills for consistent banding:
+`../geo-citability/SKILL.md` (answer/uniqueness) and `../geo-content/SKILL.md`
+(E-E-A-T). These are **reference rubrics for your judgment**, not separate scorers.
+
+### 2b. Off-site research signals (verify with WebSearch/WebFetch)
+
+The engine cannot see off-site presence. Research it and score two whole pillars,
+each 0-100, **with verified URLs** (per the Evidence Standard below):
+
+| Field | What to assess | Reference rubric |
+|---|---|---|
+| `brand_authority_score` | YouTube / Reddit / Wikipedia / Wikidata / LinkedIn presence for entity recognition | `../geo-brand-mentions/SKILL.md` |
+| `platform_optimization_score` | Per-platform readiness: AI Overviews, ChatGPT, Perplexity, Gemini, Copilot | `../geo-platform-optimizer/SKILL.md` |
+
+For Wikipedia/Wikidata, verify via the API (do not rely on web search alone):
+
+```bash
+python3 - <<'PY'
+import urllib.request, urllib.parse, json
+brand = "BRAND NAME"
+u = "https://en.wikipedia.org/w/api.php?" + urllib.parse.urlencode(
+    {"action":"query","list":"search","srsearch":brand,"format":"json"})
+req = urllib.request.Request(u, headers={"User-Agent":"GEO-Audit/2.0"})
+print(json.load(urllib.request.urlopen(req, timeout=15))["query"]["search"][:1])
+PY
+```
+
+If a platform cannot be verified, write "not found" and score it 0 — **do not
+guess a follower count or mention volume.**
+
+Write your judgments to `llm-scores.json` exactly as specified in
+`engine/LLM_SCORES.md`. Every judged signal needs an `evidence` string.
+
+---
+
+## Phase 3 — Merge and generate the report
+
+Re-run the engine with your judgments merged in:
+
+```bash
+PYTHONPATH="$ENGINE_DIR" python3 -m geo_audit.run_audit "<URL>" \
+    --type <type> --date "$(date +%F)" \
+    --llm-scores llm-scores.json \
+    --out-json GEO-AUDIT.json \
+    --out-md GEO-AUDIT-REPORT.md
+```
+
+`GEO-AUDIT-REPORT.md` is the client-facing report: headline score + confidence
+band, pillar table, prioritized fixes (drawn from measured gaps), and an explicit
+"Not Measured" section. The composite is computed in code, so it is identical on
+re-run given the same inputs.
+
+Read `GEO-AUDIT-REPORT.md` back and, if useful, expand the deep-dive prose using
+the category rubrics — but **never change the numbers**; they come from the engine.
+
+---
+
+## Composite GEO Score
+
+The engine computes the composite as a business-type-weighted average over the six
+pillars, **using only the measured weight of each pillar** (so unmeasured signals
+lower confidence rather than silently zeroing a category):
+
+| Pillar | What it measures | Default weight |
+|---|---|---|
+| AI Citability | Quotable/extractable content (engine: structure, stats; LLM: answer quality, originality) | 25% |
+| Brand Authority | Off-site entity signals (LLM-judged, evidence-linked) | 20% |
+| Content E-E-A-T | Trust signals (engine) + expertise/experience (LLM) | 20% |
+| Technical GEO | Crawler access, SSR, HTTPS, sitemap, TTFB, CWV (engine) | 15% |
+| Schema & Structured Data | JSON-LD from raw HTML, Organization/sameAs (engine) | 10% |
+| Platform Optimization | Per-platform readiness (LLM-judged) | 10% |
+
+Weights shift by business type (`local`, `saas`, `ecommerce`, `publisher`,
+`agency`) — see `engine/geo_audit/scoring/weights.py`. A local business is not
+penalized for lacking a global YouTube presence.
+
+### Score interpretation
+
+| Score | Rating | Interpretation |
+|---|---|---|
+| 90-100 | Excellent | Highly likely to be cited by AI systems |
+| 75-89 | Good | Strong foundation, clear improvements remain |
+| 60-74 | Fair | Moderate; significant opportunities |
+| 40-59 | Poor | Weak signals; AI may struggle to cite |
+| 0-39 | Critical | Largely invisible to AI systems |
+
+The report always shows `score ± band (confidence N%)`. Low confidence means more
+of the score depends on judgment or could not be measured — say so plainly.
+
+---
+
+## Issue severity classification
+
+- **Critical:** All AI crawlers blocked; no server-rendered content; domain-level
+  noindex; complete absence of structured data; brand unrecognized as an entity.
+- **High:** Key AI crawlers (GPTBot/ClaudeBot/PerplexityBot) blocked; no llms.txt;
+  missing Organization schema; no author attribution.
+- **Medium:** Partial crawler blocking; thin citability; missing FAQ schema; weak
+  author bios.
+- **Low:** Minor schema validation issues; missing alt text; missing OG tags.
+
+The engine's per-signal recommendations feed the prioritized fix list
+automatically; layer these severity labels on top when writing the report.
+
+---
+
+## Evidence & Competitor Standard
+
+**MANDATORY:** every claim that references a competitor or an off-site fact must
+include a verifiable URL to the specific page. Never write "Competitor X has
+1,200-word service pages" without linking the page. Verify with WebFetch before
+citing. Each audit making competitive claims must include at least 3 verified
+competitor URLs; if competitors cannot be verified, say so rather than guessing.
+
+This applies especially to the Phase 2b off-site research: brand-authority and
+platform-optimization scores must be grounded in real, fetched URLs.
+
+---
+
+## Business-type detection
+
+Fetch the homepage and classify (this sets `--type`):
+
+| Type | Signals |
 |---|---|
-| **SaaS** | Pricing page, "Sign up" / "Free trial" CTAs, app.domain.com subdomain, feature comparison tables, integration pages |
-| **Local Business** | Physical address on homepage, Google Maps embed, "Near me" content, LocalBusiness schema, service area pages |
-| **E-commerce** | Product listings, shopping cart, product schema, category pages, price displays, "Add to cart" buttons |
-| **Publisher** | Blog-heavy navigation, article schema, author pages, date-based archives, RSS feeds, high content volume |
-| **Agency/Services** | Case studies, portfolio, "Our Work" section, team page, client logos, service descriptions |
-| **Hybrid** | Combination of above signals -- classify by dominant pattern |
+| `saas` | Pricing page, "Sign up"/"Free trial", app subdomain, feature/integration pages |
+| `local` | Physical address, Google Maps embed, LocalBusiness schema, service-area pages |
+| `ecommerce` | Product listings, cart, Product schema, category pages, "Add to cart" |
+| `publisher` | Blog-heavy nav, Article schema, author pages, date archives, high content volume |
+| `agency` | Case studies, portfolio, "Our Work", team page, client logos |
 
-**Step 2: Crawl Sitemap and Internal Links**
-
-1. Attempt to fetch `/sitemap.xml` and `/sitemap_index.xml`.
-2. If sitemap exists, extract up to 50 unique page URLs prioritized by:
-   - Homepage (always include)
-   - Top-level navigation pages
-   - High-value pages (pricing, about, contact, key service/product pages)
-   - Blog posts (sample 5-10 most recent)
-   - Category/landing pages
-3. If no sitemap exists, crawl internal links from the homepage:
-   - Extract all `<a href>` links pointing to the same domain
-   - Follow up to 2 levels deep
-   - Prioritize pages linked from main navigation
-4. Respect `robots.txt` directives -- do not fetch disallowed paths.
-5. Enforce a maximum of 50 pages and a 30-second timeout per fetch.
-
-**Step 3: Collect Page-Level Data**
-
-For each page in the crawl set, record:
-- URL, title, meta description, canonical URL
-- H1-H6 heading structure
-- Word count of main content
-- Schema.org types present
-- Internal/external link counts
-- Images with/without alt text
-- Open Graph and Twitter Card meta tags
-- Response status code
-- Whether the page has structured data
+Pass the dominant pattern. If ambiguous, use the closest match (the engine falls
+back to a balanced default for unknown types).
 
 ---
 
-### Phase 2: Parallel Subagent Delegation
+## Output files
 
-Delegate analysis to 5 specialized subagents. Each subagent operates on the collected page data and produces a category score (0-100) plus findings.
-
-**Subagent 1: AI Visibility Analysis (geo-ai-visibility)**
-- Analyze content blocks for quotability by AI systems (citability scoring)
-- Check AI crawler access via robots.txt and llms.txt presence
-- Scan brand presence across YouTube, Reddit, Wikipedia, LinkedIn
-- Score brand authority signals that AI models use for entity recognition
-- **Competitor Evidence:** All competitor references must include specific, verified URLs (see Competitor Evidence Standard above)
-
-**Subagent 2: Platform Optimization (geo-platform-analysis)**
-- Assess readiness for Google AI Overviews, ChatGPT, Perplexity, Gemini, Bing Copilot
-- Check platform-specific ranking factors and optimization opportunities
-- **Competitor Evidence:** All competitor references must include specific, verified URLs (see Competitor Evidence Standard above)
-
-**Subagent 3: Technical GEO Infrastructure (geo-technical)**
-- Analyze robots.txt for AI crawler access
-- Verify meta tags, headers, and technical accessibility for AI systems
-- Check page speed, server-side rendering, and Core Web Vitals
-- Assess security headers and mobile optimization
-
-**Subagent 4: Content E-E-A-T Quality (geo-content)**
-- Evaluate Experience, Expertise, Authoritativeness, Trustworthiness signals
-- Check author bios, credentials, source citations
-- Assess content freshness, depth, and originality
-- Verify "About" page quality and team credentials
-- **Competitor Evidence:** When comparing content depth, word counts, or topical authority to competitors, include the specific competitor page URL and verify via WebFetch (see Competitor Evidence Standard above)
-
-**Subagent 5: Schema & Structured Data (geo-schema)**
-- Validate all schema.org markup
-- Check for GEO-critical schema types (FAQ, HowTo, Organization, Product, Article)
-- Assess schema completeness and accuracy
-- Identify missing schema opportunities
-
----
-
-### Phase 3: Score Aggregation and Report Generation
-
-#### Composite GEO Score Calculation
-
-The overall GEO Score (0-100) is a weighted average of six category scores:
-
-| Category | Weight | What It Measures |
-|---|---|---|
-| **AI Citability** | 25% | How quotable/extractable content is for AI systems |
-| **Brand Authority** | 20% | Third-party mentions, entity recognition signals |
-| **Content E-E-A-T** | 20% | Experience, Expertise, Authoritativeness, Trustworthiness |
-| **Technical GEO** | 15% | AI crawler access, llms.txt, rendering, speed |
-| **Schema & Structured Data** | 10% | Schema.org markup quality and completeness |
-| **Platform Optimization** | 10% | Presence on platforms AI models train on and cite |
-
-**Formula:**
 ```
-GEO_Score = (Citability * 0.25) + (Brand * 0.20) + (EEAT * 0.20) + (Technical * 0.15) + (Schema * 0.10) + (Platform * 0.10)
+geo-engine.json         # Phase 1: measured-only evidence + scores
+llm-scores.json         # Phase 2: your evidence-backed judgments
+GEO-AUDIT.json          # Phase 3: full merged result (machine-readable)
+GEO-AUDIT-REPORT.md     # Phase 3: client-facing report (the deliverable)
 ```
 
-#### Score Interpretation
-
-| Score Range | Rating | Interpretation |
-|---|---|---|
-| 90-100 | Excellent | Top-tier GEO optimization; site is highly likely to be cited by AI |
-| 75-89 | Good | Strong GEO foundation with room for improvement |
-| 60-74 | Fair | Moderate GEO presence; significant optimization opportunities exist |
-| 40-59 | Poor | Weak GEO signals; AI systems may struggle to cite or recommend |
-| 0-39 | Critical | Minimal GEO optimization; site is largely invisible to AI systems |
+`GEO-AUDIT.json` is the source of truth for the AI-visibility half of a business
+audit and is consumed by the `business-audit` dashboard.
 
 ---
 
-## Issue Severity Classification
+## Reference rubrics (bundled in this plugin)
 
-Every issue found during the audit is classified by severity:
+These provide the detailed banding for your Phase 2 judgments and the background
+knowledge for the deep-dive prose. They are **rubrics you apply**, not separate
+scorers — the single composite comes from the engine:
 
-### Critical (Fix Immediately)
-- All AI crawlers blocked in robots.txt
-- No indexable content (JavaScript-rendered only with no SSR)
-- Domain-level noindex directive
-- Site returns 5xx errors on key pages
-- Complete absence of any structured data
-- Brand not recognized as an entity by any AI system
-
-### High (Fix Within 1 Week)
-- Key AI crawlers (GPTBot, ClaudeBot, PerplexityBot) blocked
-- No llms.txt file present
-- Zero question-answering content blocks on key pages
-- Missing Organization or LocalBusiness schema
-- No author attribution on content pages
-- All content behind login/paywall with no preview
-
-### Medium (Fix Within 1 Month)
-- Partial AI crawler blocking (some allowed, some blocked)
-- llms.txt exists but is incomplete or malformed
-- Content blocks average under 50 citability score
-- Missing FAQ schema on pages with FAQ content
-- Thin author bios without credentials
-- No Wikipedia or Reddit brand presence
-
-### Low (Optimize When Possible)
-- Minor schema validation errors
-- Some images missing alt text
-- Content freshness issues on non-critical pages
-- Missing Open Graph tags
-- Suboptimal heading hierarchy on some pages
-- LinkedIn company page exists but is incomplete
-
----
-
-## Output Format
-
-Generate a file called `GEO-AUDIT-REPORT.md` with the following structure:
-
-```markdown
-# GEO Audit Report: [Site Name]
-
-**Audit Date:** [Date]
-**URL:** [URL]
-**Business Type:** [Detected Type]
-**Pages Analyzed:** [Count]
-
----
-
-## Executive Summary
-
-**Overall GEO Score: [X]/100 ([Rating])**
-
-[2-3 sentence summary of the site's GEO health, biggest strengths, and most critical gaps.]
-
-### Score Breakdown
-
-| Category | Score | Weight | Weighted Score |
-|---|---|---|---|
-| AI Citability | [X]/100 | 25% | [X] |
-| Brand Authority | [X]/100 | 20% | [X] |
-| Content E-E-A-T | [X]/100 | 20% | [X] |
-| Technical GEO | [X]/100 | 15% | [X] |
-| Schema & Structured Data | [X]/100 | 10% | [X] |
-| Platform Optimization | [X]/100 | 10% | [X] |
-| **Overall GEO Score** | | | **[X]/100** |
-
----
-
-## Critical Issues (Fix Immediately)
-
-[List each critical issue with specific page URLs and recommended fix]
-
-## High Priority Issues
-
-[List each high-priority issue with details]
-
-## Medium Priority Issues
-
-[List each medium-priority issue]
-
-## Low Priority Issues
-
-[List each low-priority issue]
-
----
-
-## Category Deep Dives
-
-### AI Citability ([X]/100)
-[Detailed findings, examples of good/bad passages, rewrite suggestions]
-
-### Brand Authority ([X]/100)
-[Platform presence map, mention volume, sentiment]
-
-### Content E-E-A-T ([X]/100)
-[Author quality, source citations, freshness, depth]
-
-### Technical GEO ([X]/100)
-[Crawler access, llms.txt, rendering, headers]
-
-### Schema & Structured Data ([X]/100)
-[Schema types found, validation results, missing opportunities]
-
-### Platform Optimization ([X]/100)
-[Presence on YouTube, Reddit, Wikipedia, etc.]
-
----
-
-## Quick Wins (Implement This Week)
-
-1. [Specific, actionable quick win with expected impact]
-2. [Another quick win]
-3. [Another quick win]
-4. [Another quick win]
-5. [Another quick win]
-
-## 30-Day Action Plan
-
-### Week 1: [Theme]
-- [ ] Action item 1
-- [ ] Action item 2
-
-### Week 2: [Theme]
-- [ ] Action item 1
-- [ ] Action item 2
-
-### Week 3: [Theme]
-- [ ] Action item 1
-- [ ] Action item 2
-
-### Week 4: [Theme]
-- [ ] Action item 1
-- [ ] Action item 2
-
----
-
-## Appendix: Pages Analyzed
-
-| URL | Title | GEO Issues |
-|---|---|---|
-| [url] | [title] | [issue count] |
-```
-
----
-
-## Competitor Evidence Standard
-
-**MANDATORY**: Every claim that references a competitor must include a verifiable URL to the specific page being referenced. This applies to ALL audit outputs — subagent reports, the main audit report, and the client report.
-
-### Rules
-
-1. **No unlinked competitor claims.** Never write "Competitor X has 1,200-word service pages" without linking to the actual page. The correct form is: "One Productions' corporate video page (https://oneproductions.com/corporate-video-production) contains ~1,200 words with detailed process descriptions and embedded case studies."
-2. **Verify before citing.** Use WebFetch to confirm the competitor page exists and the claim is accurate (word count, content structure, reviews, etc.) before including it in any report.
-3. **Specific pages, not just domains.** Link to the exact page that supports the claim, not just the competitor's homepage. If comparing service page depth, link to their service page. If comparing reviews, link to their Clutch/Trustpilot profile.
-4. **Competitor discovery.** When identifying competitors for benchmarking, search for the target site's industry + location + service type. Record competitor URLs during discovery so they are available for all subagents.
-5. **Format for competitor references in reports:**
-   ```
-   **Competitor Benchmark:** [Competitor Name]'s [page type] ([exact URL]) [specific observation with numbers].
-   ```
-   Example:
-   ```
-   **Competitor Benchmark:** One Productions' corporate video page (https://oneproductions.com/corporate-video-production) contains ~1,200 words with a detailed production process section, 3 embedded case studies, and client testimonials — compared to VideoBase's ~300-word equivalent.
-   ```
-6. **Minimum competitor evidence per audit.** Each audit that makes competitive claims must include at least 3 verified competitor page URLs. If competitors cannot be verified via WebFetch, state this explicitly rather than making unverified claims.
-
-### Propagation to Subagents
-
-When delegating to subagents, include this instruction in every subagent prompt:
-> "All competitor references must include the specific URL of the page being referenced. Do not make claims about competitor content, word counts, features, reviews, or strategies without linking to the actual page. Use WebFetch to verify competitor pages before citing them."
-
----
-
-## Quality Gates
-
-- **Page Limit:** Never crawl more than 50 pages per audit. Prioritize high-value pages.
-- **Timeout:** 30-second maximum per page fetch. Skip pages that exceed this.
-- **Robots.txt:** Always check and respect robots.txt before crawling. Note any AI-specific directives.
-- **Rate Limiting:** Wait at least 1 second between page fetches to avoid overloading the server.
-- **Error Handling:** Log failed fetches but continue the audit. Report fetch failures in the appendix.
-- **Content Type:** Only analyze HTML pages. Skip PDFs, images, and other binary content.
-- **Deduplication:** Canonicalize URLs before crawling. Skip duplicate content (e.g., HTTP vs HTTPS, www vs non-www, trailing slashes).
-
----
-
-## Business-Type-Specific Audit Adjustments
-
-### SaaS Sites
-- Extra weight on: Feature comparison tables (high citability), integration pages, documentation quality
-- Check for: API documentation structure, changelog pages, knowledge base organization
-- Key schema: SoftwareApplication, FAQPage, HowTo
-
-### Local Businesses
-- Extra weight on: NAP consistency, Google Business Profile signals, local schema
-- Check for: Service area pages, location-specific content, review markup
-- Key schema: LocalBusiness, GeoCoordinates, OpeningHoursSpecification
-
-### E-commerce Sites
-- Extra weight on: Product descriptions (citability), comparison content, buying guides
-- Check for: Product schema completeness, review aggregation, FAQ sections on product pages
-- Key schema: Product, AggregateRating, Offer, BreadcrumbList
-
-### Publishers
-- Extra weight on: Article quality, author credentials, source citation practices
-- Check for: Article schema, author pages, publication date freshness, original research
-- Key schema: Article, NewsArticle, Person (author), ClaimReview
-
-### Agency/Services
-- Extra weight on: Case studies (citability), expertise demonstration, thought leadership
-- Check for: Portfolio schema, team credentials, industry-specific expertise signals
-- Key schema: Organization, Service, Person (team), Review
+- `../geo-citability/` — answer quality, self-containment, statistical density
+- `../geo-content/` — E-E-A-T dimensions and content quality
+- `../geo-technical/` — technical checks the engine automates (use for deep-dive)
+- `../geo-schema/` — schema types and sameAs strategy
+- `../geo-brand-mentions/` — off-site platform weighting for brand authority
+- `../geo-platform-optimizer/` — per-platform readiness for platform optimization
+- `../geo-crawlers/` — AI crawler reference (engine automates the access map)
+- `../geo-llmstxt/` — llms.txt spec (engine automates presence/format)

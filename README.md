@@ -16,9 +16,18 @@ Restart Claude Code. That's the whole install — everything the plugin needs is
 
 ---
 
-## Firecrawl MCP (required)
+## Firecrawl MCP (required for the competitive half)
 
-The audit scrapes the client site, discovers competitors, and deep-scrapes the top 5. It needs Firecrawl MCP to do that. **The plugin will not run without it.**
+The **competitive analysis** scrapes the client site, discovers competitors, and
+deep-scrapes the top 5. That half needs Firecrawl MCP. **Without it, the
+competitive report cannot run.**
+
+The **GEO audit** half is independent: it runs a bundled deterministic Python
+engine (standard library only — no install) plus `WebFetch`/`WebSearch`, so it
+works even without Firecrawl. If you only have Python, you still get a full,
+reproducible GEO score with a confidence band. Optionally set a free
+`PSI_API_KEY` ([PageSpeed Insights](https://developers.google.com/speed/docs/insights))
+to include real Core Web Vitals.
 
 ### 1. Get a free API key
 
@@ -66,17 +75,25 @@ Expect 5–15 minutes per audit, depending on site size.
 
 ## What you get
 
-Five files dropped into your working directory:
+Files dropped into your working directory:
 
 | File | Purpose |
-| --- | --- | --- |
+| --- | --- |
 | `research/01-client-brand.md` | Brand snapshot — colors, fonts, tone, messaging, site architecture. |
 | `research/02-competitor-analysis.md` | Top-5 deep scrape, comparison matrix, "Patterns of the top 10%". |
 | `competitive-analysis.html` | Print-ready PDF-export competitive report. |
-| `GEO-AUDIT-REPORT.md` | Overall GEO Score, 6-category breakdown, prioritized issues, 30-day plan. |
-| `dashboard.html` | The new combined view — two tabs (**Competitive** / **GEO**) rendered from the markdowns above. |
+| `GEO-AUDIT.json` | Machine-readable: composite score, per-pillar scores, confidence band, and every signal with its evidence. |
+| `GEO-AUDIT-REPORT.md` | Client-facing GEO report — score **with confidence band**, 6-pillar breakdown, prioritized fixes, 30-day plan. |
+| `dashboard.html` | The combined view — two tabs (**Competitive** / **GEO**) rendered from the files above. |
 
-The two Markdown files in `research/` plus `GEO-AUDIT-REPORT.md` are the **implementation source of truth**. Open them in a fresh Claude Code session inside your website's repo and paste:
+The GEO score is **reproducible**: it's computed in code from observed HTTP/HTML
+evidence, so re-running on the same site yields the same number. The report shows
+a confidence band (how much of the score is measured vs. judged) so it's honest
+enough to hand a paying client.
+
+The two Markdown files in `research/` plus `GEO-AUDIT.json` are the
+**implementation source of truth**. Open them in a fresh Claude Code session
+inside your website's repo and paste:
 
 ```
 Read research/02-competitor-analysis.md and GEO-AUDIT-REPORT.md. Implement every Critical and High finding against this codebase.

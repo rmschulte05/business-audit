@@ -24,7 +24,29 @@ SECURITY_HEADERS = [
 ]
 
 
-def collect(url: str, home: HttpResult, robots: HttpResult | None = None):
+def _page_body(page) -> str:
+    if isinstance(page, dict):
+        return page.get("body", "") or ""
+    return getattr(page, "body", "") or ""
+
+
+def _ssr_points(body: str) -> float:
+    """SSR points (0-20) for one page: 12 for >=250 words (6 for >=80) + 8 for an H1."""
+    text = visible_text(body)
+    words = len(text.split())
+    h1s = headings(body)["h1"]
+    pts = 0.0
+    if words >= 250:
+        pts += 12.0
+    elif words >= 80:
+        pts += 6.0
+    if h1s:
+        pts += 8.0
+    return pts
+
+
+def collect(url: str, home: HttpResult, robots: HttpResult | None = None,
+            inner_pages: list | None = None):
     base = origin(url)
     raw: dict = {}
     signals: list[Signal] = []
@@ -79,23 +101,32 @@ def collect(url: str, home: HttpResult, robots: HttpResult | None = None):
     ))
 
     # 5) Server-side rendering — 20. Real text + an H1 present in RAW HTML.
+    # Sampled across pages: the homepage always counts; inner pages (if crawled)
+    # are averaged in so SSR reflects the whole site (fraction server-rendered).
+    # With no inner pages this is exactly the homepage-only score.
     text = visible_text(home.body)
     words = len(text.split())
     h1s = headings(home.body)["h1"]
     raw["raw_word_count"] = words
     raw["h1_count"] = len(h1s)
-    ssr_pts = 0.0
-    if words >= 250:
-        ssr_pts += 12.0
-    elif words >= 80:
-        ssr_pts += 6.0
-    if h1s:
-        ssr_pts += 8.0
+    home_ssr_pts = _ssr_points(home.body or "")
+    pages = inner_pages or []
+    if pages:
+        per_page_ssr = [home_ssr_pts] + [_ssr_points(_page_body(p)) for p in pages]
+        ssr_pts = round(sum(per_page_ssr) / len(per_page_ssr), 2)
+        rendered = sum(1 for p in per_page_ssr if p >= 20.0)
+        raw["ssr_pages_full"] = f"{rendered}/{len(per_page_ssr)}"
+        ssr_value = f"avg {ssr_pts}/20 across {len(per_page_ssr)} pages"
+        ssr_evidence = f"per-page SSR points: {per_page_ssr}"
+    else:
+        ssr_pts = home_ssr_pts
+        ssr_value = f"{words} words, {len(h1s)} H1"
+        ssr_evidence = f"raw visible words={words}; h1={h1s[:1]}"
     signals.append(measured(
         "ssr", "Content server-rendered (visible in raw HTML)",
-        20.0, ssr_pts, value=f"{words} words, {len(h1s)} H1",
+        20.0, ssr_pts, value=ssr_value,
         detail="AI crawlers do not run JavaScript; content must be in the HTML source.",
-        evidence=f"raw visible words={words}; h1={h1s[:1]}",
+        evidence=ssr_evidence,
         recommendation="" if ssr_pts == 20 else
         "Server-render main content — little/no text in raw HTML means AI crawlers "
         "see an empty page. Use SSR/SSG (Next.js, Nuxt, etc.).",

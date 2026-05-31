@@ -44,12 +44,9 @@ def _iter_types(node, found: dict):
             _iter_types(v, found)
 
 
-def collect(url: str, home: HttpResult):
-    """home is the already-fetched homepage HttpResult (raw HTML)."""
-    raw: dict = {}
-    signals: list[Signal] = []
-
-    blocks = extract_ld_json_blocks(home.body or "")
+def _parse_page(body: str) -> tuple[list, int, int, dict[str, list]]:
+    """Parse one page's JSON-LD: (parsed_objs, block_count, parse_errors, found_types)."""
+    blocks = extract_ld_json_blocks(body or "")
     parsed = []
     parse_errors = 0
     for b in blocks:
@@ -64,28 +61,72 @@ def collect(url: str, home: HttpResult):
         if isinstance(p, dict) and "@graph" in p:
             _iter_types(p["@graph"], found)
         _iter_types(p, found)
+    return parsed, len(blocks), parse_errors, found
 
-    detected = sorted(found.keys())
-    raw["ld_json_blocks"] = len(blocks)
+
+def collect(url: str, home: HttpResult, inner_pages: list | None = None):
+    """home is the already-fetched homepage HttpResult (raw HTML).
+
+    inner_pages is an optional list of additional fetched pages, each a dict with
+    at least {"url": str, "body": str}, used to UNION detected @types and sameAs
+    across the whole site. When empty (max_pages=1), output is identical to the
+    homepage-only behavior so existing scores are preserved.
+    """
+    raw: dict = {}
+    signals: list[Signal] = []
+
+    parsed, n_blocks, parse_errors, found = _parse_page(home.body or "")
+    blocks = [None] * n_blocks  # only len() is used below; keep homepage-only math
+
+    # Union detected @types + sameAs across inner pages (homepage stays the basis
+    # for org/website/valid-json/server-rendered scoring to preserve parity).
+    union_found: dict[str, list] = {t: list(ns) for t, ns in found.items()}
+    inner_types_by_page: list[dict] = []
+    for page in (inner_pages or []):
+        body = page.get("body", "") if isinstance(page, dict) else ""
+        _ip_parsed, _ip_blocks, _ip_errs, ip_found = _parse_page(body)
+        for t, nodes in ip_found.items():
+            union_found.setdefault(t, []).extend(nodes)
+        if isinstance(page, dict):
+            inner_types_by_page.append({
+                "url": page.get("url", ""),
+                "types": sorted(ip_found.keys()),
+            })
+
+    detected = sorted(union_found.keys())
+    detected_home_only = sorted(found.keys())
+    raw["ld_json_blocks"] = n_blocks
     raw["parse_errors"] = parse_errors
     raw["detected_types"] = detected
+    raw["detected_types_homepage"] = detected_home_only
+    if inner_types_by_page:
+        raw["detected_types_by_page"] = inner_types_by_page
 
-    # 1) Any JSON-LD present at all — 20 points.
-    has_any = len(parsed) > 0
+    # For union-aware signals (json_ld present, sameAs links, WebSite presence),
+    # consider evidence from any fetched page. When no inner pages were crawled,
+    # union_found == found, so these reduce to the homepage-only values.
+
+    # has_any_home: was JSON-LD present on the HOMEPAGE specifically. Used for
+    # the server-rendered + valid-JSON signals so those stay homepage-based
+    # (preserving parity). has_any: union across all crawled pages.
+    has_any_home = len(parsed) > 0
+    has_any = has_any_home or bool(union_found)
+
+    # 1) Any JSON-LD present at all — 20 points. (union across crawled pages)
     signals.append(measured(
         "json_ld_present", "JSON-LD structured data present",
         20.0, 20.0 if has_any else 0.0,
         value=has_any,
-        evidence=f"{len(blocks)} ld+json block(s); types: {', '.join(detected) or 'none'}",
+        evidence=f"{n_blocks} ld+json block(s) on homepage; types (site): {', '.join(detected) or 'none'}",
         recommendation="" if has_any else
         "Add JSON-LD structured data — it is how AI systems identify your entity.",
     ))
 
-    # 2) Organization or LocalBusiness identity — 25 points.
+    # 2) Organization or LocalBusiness identity — 25 points. (site-wide union)
     org_node = None
     for t in ("Organization", "LocalBusiness", "Corporation"):
-        if t in found:
-            org_node = found[t][0]
+        if t in union_found:
+            org_node = union_found[t][0]
             break
     if org_node is not None:
         req = REQUIRED.get("Organization", [])
@@ -106,8 +147,9 @@ def collect(url: str, home: HttpResult):
         ))
 
     # 3) sameAs entity links — 15 points (3 per link, capped). Countable.
+    #    Union across all crawled pages (sameAs may live in inner-page schema).
     sameas = []
-    for nodes in found.values():
+    for nodes in union_found.values():
         for n in nodes:
             sa = n.get("sameAs")
             if isinstance(sa, str):
@@ -126,8 +168,8 @@ def collect(url: str, home: HttpResult):
         "Organization schema to strengthen entity recognition.",
     ))
 
-    # 4) WebSite schema — 10 points.
-    has_website = "WebSite" in found
+    # 4) WebSite schema — 10 points. (site-wide union)
+    has_website = "WebSite" in union_found
     signals.append(measured(
         "website_schema", "WebSite schema present",
         10.0, 10.0 if has_website else 0.0,
@@ -139,10 +181,10 @@ def collect(url: str, home: HttpResult):
     # If we found it in the static body at all, it is server-rendered by definition.
     signals.append(measured(
         "schema_server_rendered", "JSON-LD is in server-rendered HTML",
-        15.0, 15.0 if has_any else 0.0,
-        value=has_any,
+        15.0, 15.0 if has_any_home else 0.0,
+        value=has_any_home,
         detail="Parsed from raw HTML (no JS execution); AI crawlers can read it.",
-        recommendation="" if has_any else
+        recommendation="" if has_any_home else
         "Render JSON-LD server-side — JS-injected schema is missed by AI crawlers.",
     ))
 

@@ -73,8 +73,28 @@ Detect the business type first (see the classification table at the end), then r
 PYTHONPATH="$ENGINE_DIR" python3 -m geo_audit.run_audit "<URL>" \
     --type <local|saas|ecommerce|publisher|agency> \
     --date "$(date +%F)" \
+    --max-pages 8 \
     --out-json geo-engine.json
 ```
+
+`--max-pages N` (default `8`) controls the deterministic multi-page crawl. The
+engine discovers same-domain pages in a fixed order — homepage first, then
+`sitemap.xml` (following a sitemap index one level), then high-value homepage
+links (about, pricing, services, products, blog, docs, contact) — while
+respecting `robots.txt`. Across the fetched pages it then:
+- UNIONs schema `@types` and `sameAs` (so Product/Article/FAQ schema living on
+  inner pages is detected and credited, not just the homepage);
+- reports a site-wide `citability_coverage` signal (fraction of pages with strong
+  answer-style content) alongside the homepage citability signals;
+- turns E-E-A-T `authorship` and `date_present` into the fraction of pages
+  exhibiting them, and treats trust signals (privacy/terms/contact) as present if
+  found on ANY page;
+- samples server-side rendering across pages (reported as the fraction
+  server-rendered, homepage always counted).
+
+Use `--max-pages 1` for a fast, homepage-only run that reproduces the legacy
+single-page scores exactly. Re-running with the same `--max-pages` on the same
+site yields byte-identical output (no randomness).
 
 Optional but recommended — real Core Web Vitals (free Google key):
 
@@ -88,6 +108,9 @@ export PSI_API_KEY=...   # https://developers.google.com/speed/docs/insights
   recommendation.
 - `raw` — the underlying data (parsed schema types, robots access map, captured
   homepage word counts/headings, etc.) you will read for the judgment phase.
+- `meta.pages_analyzed` — the list of page URLs actually fetched, and `raw.pages`
+  — compact per-page detail (only populated when `--max-pages > 1`). The
+  `composite` contract is unchanged regardless of `--max-pages`.
 
 If `meta.error` is present (site unreachable or blocks all crawlers), report that
 honestly and stop — do not invent a score.

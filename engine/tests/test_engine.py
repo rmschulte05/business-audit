@@ -409,5 +409,45 @@ class TestWeights(unittest.TestCase):
         self.assertEqual(rating_for(None), "Insufficient Data")
 
 
+class TestInvariants(unittest.TestCase):
+    """Invariants the composite must always satisfy (regression guards)."""
+
+    def test_all_profiles_normalize_to_one(self):
+        # Every business-type weight profile must normalize to 1.0 so the
+        # weighted average is on a true 0-100 scale regardless of profile.
+        for t in ("default", "local", "saas", "ecommerce", "publisher", "agency"):
+            _, w = resolve_profile(t)
+            self.assertAlmostEqual(sum(w.values()), 1.0, places=3,
+                                   msg=f"profile {t} must sum to 1.0")
+
+    def test_band_always_contains_score(self):
+        # The headline confidence band must never exclude its own score —
+        # including the realistic low-confidence case (an SMB whose off-site
+        # pillars are unmeasured, like the rmit4you run).
+        collected = {
+            "citability": category("citability", "Citability",
+                                   [measured("a", "A", 80, 0), not_measured("j", "J", 20)]),
+            "eeat": category("eeat", "EEAT", [measured("a", "A", 100, 30)]),
+            "technical": category("technical", "Technical", [measured("a", "A", 100, 50)]),
+            "schema": category("schema", "Schema", [measured("a", "A", 100, 0)]),
+        }
+        comp = aggregate(collected, "agency")
+        lo, hi = comp.band
+        self.assertLessEqual(lo, comp.score)
+        self.assertLessEqual(comp.score, hi)
+
+    def test_band_narrows_at_full_confidence(self):
+        # When every pillar is measured at full confidence, confidence hits 1.0
+        # and the band collapses onto the score. platform_optimization is
+        # LLM-only, so it is supplied via llm_scores (not `collected`).
+        collected = {p: category(p, p, [measured("a", "A", 100, 70)])
+                     for p in ("citability", "brand_authority", "eeat",
+                               "technical", "schema")}
+        comp = aggregate(collected, "saas",
+                         {"platform_optimization_score": 70})
+        self.assertEqual(comp.confidence, 1.0)
+        self.assertEqual(comp.band[0], comp.band[1])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -1,23 +1,26 @@
 ---
 name: website-intelligence
 description: |
-  Research-driven competitive intelligence engine for websites. Scrapes a client's existing site,
-  analyzes their top 5 competitors, produces a professional competitive analysis report (PDF-ready
-  HTML), then builds a premium scroll-animated website informed by real market data. Uses Firecrawl
-  MCP for scraping. Trigger when the user says "website intelligence", "build a site", "redesign",
-  "website for [business]", "scrape and rebuild", "competitive analysis", "niche research", or
-  "website audit".
+  Research-driven competitive intelligence for websites. Scrapes a client's existing site,
+  analyzes their top 5 competitors, and produces a professional competitive analysis report
+  (PDF-ready HTML): brand snapshot, competitor breakdown, and market-gap opportunities.
+  Uses Firecrawl MCP for scraping. Trigger when the user says "website intelligence",
+  "competitive analysis", "competitor analysis", "niche research", "website audit", or
+  "market research for [business]".
 allowed-tools: Read, Write, Grep, Glob, Bash, WebFetch
 ---
 
-# Website Intelligence — Research-Driven Premium Websites
+# Website Intelligence — Competitive Intelligence & Research
 
-You are a senior web strategist and developer. Your job is to research a niche,
-scrape a client's existing site, analyze their competitors, and build a premium
-scroll-animated website grounded in competitive intelligence — not guesswork.
+You are a senior web strategist. Your primary job is to research a niche, scrape a
+client's existing site, analyze their competitors, and produce a competitive
+analysis report grounded in real market data — not guesswork. If, and only if, the
+user explicitly asks you to build or redesign the site, you can continue into the
+optional build phases (4–6) to scaffold a premium, scroll-animated website.
 
 Work through each phase in order. Save all research outputs to the project directory
-so the user has deliverables at every stage.
+so the user has deliverables at every stage. For an audit-only request (e.g. when
+invoked by `business-audit`), stop after Phase 3.
 
 ---
 

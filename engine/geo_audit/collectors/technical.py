@@ -154,21 +154,37 @@ def collect(url: str, home: HttpResult, robots: HttpResult | None = None,
     ))
 
     # 8) TTFB — 10. Measured wall-clock to full homepage response.
+    #
+    # TTFB is the ONE genuinely wall-clock signal: the same site can answer in
+    # 55ms on one run and 66ms on the next. Both fall in the same scoring tier
+    # so the SCORE is stable, but if we displayed the raw millisecond reading
+    # the rendered HTML (and its embedded JSON) would change byte-for-byte every
+    # run, breaking the "same input -> identical artifact" promise. So the
+    # displayed `value` is the coarse scoring TIER, not the jittery raw reading.
+    # The precise measurement is preserved out-of-band in meta.ttfb_ms / the raw
+    # technical block for evidence — see run_audit.py.
     ttfb = home.ttfb_ms
     if ttfb is None:
         ttfb_pts = 0.0
+        ttfb_tier = "Not measured"
     elif ttfb <= 800:
         ttfb_pts = 10.0
+        ttfb_tier = "Fast (under 800 ms)"
     elif ttfb <= 1800:
         ttfb_pts = 6.0
+        ttfb_tier = "Moderate (800 to 1800 ms)"
     elif ttfb <= 3000:
         ttfb_pts = 3.0
+        ttfb_tier = "Slow (1800 to 3000 ms)"
     else:
         ttfb_pts = 0.0
+        ttfb_tier = "Very slow (over 3000 ms)"
     signals.append(measured(
         "ttfb", "Server response time (TTFB)",
-        10.0, ttfb_pts, value=f"{ttfb} ms",
-        detail="Measured server response latency for the homepage.",
+        10.0, ttfb_pts, value=ttfb_tier,
+        detail="Measured server response latency for the homepage. The precise "
+        "millisecond reading is recorded in meta.ttfb_ms; the displayed tier is "
+        "bucketed so wall-clock jitter does not change the report byte-for-byte.",
         recommendation="" if ttfb_pts >= 10 else
         "Reduce TTFB below 800ms via caching/CDN/faster origin.",
     ))

@@ -7,6 +7,7 @@ reproducible. Run: python3 -m tests.test_engine  (from engine/).
 
 from __future__ import annotations
 
+import json
 import sys
 import unittest
 
@@ -447,6 +448,163 @@ class TestInvariants(unittest.TestCase):
                          {"platform_optimization_score": 70})
         self.assertEqual(comp.confidence, 1.0)
         self.assertEqual(comp.band[0], comp.band[1])
+
+
+# ---------- standalone HTML report ----------
+class TestHtmlReport(unittest.TestCase):
+    """Offline tests for the deterministic, self-contained HTML renderer."""
+
+    def _result(self):
+        """A realistic result dict built from the engine (no network)."""
+        collected = {
+            "technical": category("technical", "Technical GEO",
+                                  [measured("a", "A", 100, 80,
+                                            recommendation="Add HSTS header.",
+                                            evidence="missing: strict-transport-security")]),
+            "schema": category("schema", "Schema", [measured("a", "A", 100, 60)]),
+            "citability": category("citability", "Citability",
+                                   [measured("a", "A", 80, 40,
+                                             recommendation="Add a direct answer paragraph.",
+                                             evidence="no <h2> question heading found"),
+                                    not_measured("uniqueness", "Content uniqueness", 20)]),
+            "eeat": category("eeat", "EEAT", [measured("a", "A", 100, 50)]),
+        }
+        return {
+            "meta": {
+                "url": "https://example.test",
+                "final_url": "https://example.test/",
+                "date": "2026-05-31",
+                "engine_version": "2.0.0",
+                "http_status": 200,
+                "ttfb_ms": 120.0,
+                "pages_analyzed": ["https://example.test/"],
+            },
+            "composite": aggregate(collected, "saas").to_dict(),
+            "raw": {},
+        }
+
+    def _extract_embedded_json(self, html):
+        import re
+        m = re.search(
+            r'<script type="application/json" id="geo-audit-data">(.*?)</script>',
+            html, re.DOTALL)
+        self.assertIsNotNone(m, "embedded JSON script block must be present")
+        # Reverse the breakout-escaping done by the renderer before parsing.
+        return json.loads(m.group(1).replace("<\\/", "</"))
+
+    def _visible_part(self, html):
+        """The human-readable HTML, excluding the embedded machine-readable JSON
+        block (which legitimately contains JSON `null` and raw string data)."""
+        marker = '<script type="application/json" id="geo-audit-data">'
+        idx = html.find(marker)
+        self.assertNotEqual(idx, -1, "data block must exist")
+        return html[:idx]
+
+    def test_returns_doctype_string(self):
+        html = run_audit.render_html(self._result())
+        self.assertIsInstance(html, str)
+        self.assertTrue(html.startswith("<!"))
+
+    def test_contains_score_and_rating(self):
+        result = self._result()
+        html = run_audit.render_html(result)
+        comp = result["composite"]
+        self.assertIn(str(int(round(comp["geo_score"]))), html)
+        self.assertIn(comp["rating"], html)
+
+    def test_embedded_json_roundtrips_to_same_score(self):
+        result = self._result()
+        html = run_audit.render_html(result)
+        self.assertIn('<script type="application/json" id="geo-audit-data">', html)
+        parsed = self._extract_embedded_json(html)
+        self.assertEqual(parsed["composite"]["geo_score"],
+                         result["composite"]["geo_score"])
+
+    def test_null_score_renders_not_measured_and_never_literal_null(self):
+        # Nothing measured -> composite geo_score is None and pillars are absent.
+        result = {
+            "meta": {"url": "https://empty.test", "date": "2026-05-31",
+                     "engine_version": "2.0.0", "pages_analyzed": []},
+            "composite": aggregate({}, "saas").to_dict(),
+            "raw": {},
+        }
+        self.assertIsNone(result["composite"]["geo_score"])
+        html = run_audit.render_html(result)
+        visible = self._visible_part(html)
+        self.assertIn("Not measured", visible)
+        # The visible report never prints the literal null/None (the em dash is
+        # used instead). The embedded JSON block legitimately contains JSON null.
+        self.assertNotIn("null", visible)
+        self.assertNotIn("None", visible)
+
+    def test_no_template_tokens_left(self):
+        html = run_audit.render_html(self._result())
+        self.assertEqual(html.count("{" + "{"), 0)
+
+    def test_deterministic(self):
+        result = self._result()
+        self.assertEqual(run_audit.render_html(result),
+                         run_audit.render_html(result))
+
+    def test_ttfb_jitter_does_not_change_embedded_artifact(self):
+        # TTFB is the one sanctioned wall-clock signal. Two runs with the SAME
+        # network evidence but a different sub-bucket TTFB reading (55.6 vs 66.6
+        # ms — both in the <=800ms tier) must still render byte-identical HTML.
+        r1 = self._result()
+        r1["meta"]["ttfb_ms"] = 55.6
+        r2 = self._result()
+        r2["meta"]["ttfb_ms"] = 66.6
+        self.assertEqual(run_audit.render_html(r1), run_audit.render_html(r2))
+        # And rendering never leaks the raw sub-bucket reading into the artifact.
+        html = run_audit.render_html(r1)
+        self.assertNotIn("55.6", html)
+        self.assertNotIn("66.6", html)
+
+    def test_render_html_does_not_mutate_result(self):
+        # The TTFB coarsening must produce a copy, never mutate the caller's dict
+        # (the canonical GEO-AUDIT.json keeps the precise reading).
+        result = self._result()
+        result["meta"]["ttfb_ms"] = 66.6
+        run_audit.render_html(result)
+        self.assertEqual(result["meta"]["ttfb_ms"], 66.6)
+
+    def test_report_is_fully_offline_no_external_requests(self):
+        # "Fully self-contained — no internet needed to view it." The artifact
+        # must make ZERO network requests: no Google Fonts at all, and no
+        # resource-fetching tags (<link>/<img>/<script src>/preconnect) in the
+        # rendered markup. Recommendation/evidence STRINGS may legitimately
+        # contain "<link" etc. inside the embedded JSON data block (it is data,
+        # not markup), so the markup checks are scoped to the visible region.
+        html = run_audit.render_html(self._result())
+        self.assertNotIn("fonts.googleapis.com", html)  # not even as data
+        self.assertNotIn("fonts.gstatic.com", html)
+        self.assertEqual(html.count("<style>"), 1)      # exactly one inline style
+        markup = self._visible_part(html)               # head+body, no data block
+        self.assertNotIn("<link", markup)               # no external stylesheets
+        self.assertNotIn("preconnect", markup)
+        self.assertNotIn("<img", markup)                # no external images
+        self.assertNotIn("src=", markup)                # no <script src>/<img src>
+
+    def test_dynamic_text_is_escaped(self):
+        # Evidence/recommendation containing markup must not break out raw.
+        result = self._result()
+        result["composite"]["pillars"]["citability"]["signals"][0]["evidence"] = (
+            '<img src=x onerror="alert(1)"> & "quoted" </script>')
+        html = run_audit.render_html(result)
+        # In the human-readable body the markup must be escaped, not raw.
+        visible = self._visible_part(html)
+        self.assertNotIn('<img src=x onerror=', visible)
+        self.assertIn("&lt;img", visible)
+        # The embedded JSON keeps the raw value (it is data), but the only
+        # script-tag breakout risk </ is neutralized as <\/, so the </script>
+        # the payload contains cannot prematurely close the data block.
+        import re
+        m = re.search(
+            r'<script type="application/json" id="geo-audit-data">(.*?)</script>',
+            html, re.DOTALL)
+        self.assertIsNotNone(m)
+        self.assertNotIn("</", m.group(1))   # all </ neutralized to <\/
+        self.assertIn("<\\/script>", m.group(1))
 
 
 if __name__ == "__main__":

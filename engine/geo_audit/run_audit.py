@@ -4,6 +4,7 @@ Usage:
     python3 -m geo_audit.run_audit <url> [--type saas|local|ecommerce|publisher|agency]
                                          [--llm-scores path.json]
                                          [--out-json path.json] [--out-md path.md]
+                                         [--out-html path.html]
                                          [--quiet]
 
 Runs every collector against a single shared homepage fetch, aggregates with the
@@ -21,6 +22,7 @@ from . import __version__
 from .collectors import content, crawl, crawlers, llmstxt, psi, schema, technical
 from .http_client import DEFAULT_UA, fetch, normalize_url
 from .report import render
+from .report_html import render_html
 from .scoring.aggregate import aggregate
 
 DEFAULT_MAX_PAGES = 8
@@ -146,6 +148,8 @@ def main(argv: list[str] | None = None) -> int:
                     help=f"Max pages to crawl (default {DEFAULT_MAX_PAGES}; 1 = homepage only).")
     ap.add_argument("--out-json", default=None)
     ap.add_argument("--out-md", default=None)
+    ap.add_argument("--out-html", default=None,
+                    help="Write a self-contained shareable HTML report to PATH.")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args(argv)
 
@@ -165,15 +169,18 @@ def main(argv: list[str] | None = None) -> int:
     if args.out_md:
         with open(args.out_md, "w") as f:
             f.write(md)
+    if args.out_html:
+        with open(args.out_html, "w") as f:
+            f.write(render_html(result))
 
     # If no output files requested, print JSON to stdout.
-    if not args.out_json and not args.out_md:
+    if not args.out_json and not args.out_md and not args.out_html:
         print(out_json)
     else:
         c = result["composite"]
         print(f"GEO {c['geo_score']}/100 {c['rating']} "
               f"(confidence {int(c['confidence']*100)}%) -> "
-              f"{args.out_md or args.out_json}")
+              f"{args.out_html or args.out_md or args.out_json}")
     return 0
 
 

@@ -6,6 +6,39 @@ Made by **Lucid**.
 
 ---
 
+## Audit any business in 60 seconds (no API key)
+
+Only **Python 3** required — no account, no install, nothing to configure:
+
+```bash
+git clone https://github.com/rmschulte05/business-audit
+cd business-audit
+python3 audit.py https://example.com
+```
+
+You get a reproducible **GEO score with a confidence band** and three files in
+`audits/<your-domain>/`:
+
+- **GEO-AUDIT.html** — a polished, self-contained page you can open in a browser
+  or print to PDF and **email to a client**. Styles and data are inlined and it
+  loads no web fonts, so it renders identically online or fully offline.
+- **GEO-AUDIT-REPORT.md** — the readable report.
+- **GEO-AUDIT.json** — the raw evidence and per-pillar scores.
+
+The launcher also prints a **ready-to-paste prompt**: drop the report folder into
+your website's repo, open Claude Code there, paste the prompt, and Claude works
+through the prioritized fixes against your real code.
+
+The launcher auto-detects the business type from the homepage; override it with
+`--type local|saas|ecommerce|publisher|agency`. The deterministic GEO engine is
+bundled and uses the Python standard library only — **Firecrawl is needed only
+for the optional competitive analysis below**, not for the GEO audit.
+
+> Full walkthrough — sharing, PDF export, and the Claude Code fix loop — in
+> **[USAGE.md](USAGE.md)**.
+
+---
+
 ## Install (60 seconds)
 
 ```bash

@@ -78,3 +78,6 @@ coverage/
 engine/**/__pycache__/
 __pycache__/
 *.pyc
+
+# user-generated audit output (from audit.py)
+/audits/

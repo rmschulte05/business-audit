@@ -2,10 +2,10 @@
   "meta": {
     "url": "https://stripe.com",
     "final_url": "https://stripe.com/en-nl",
-    "date": "2026-05-31",
+    "date": "2026-06-01",
     "engine_version": "2.0.0",
     "http_status": 200,
-    "ttfb_ms": 500.4,
+    "ttfb_ms": 543.0,
     "pages_analyzed": [
       "https://stripe.com/en-nl",
       "https://stripe.com/en-nl/pricing",
@@ -300,7 +300,7 @@
             "status": "measured",
             "max_points": 5.5,
             "points": 5.5,
-            "value": "500.4 ms",
+            "value": "543.0 ms",
             "detail": "Measured server response latency for the homepage.",
             "evidence": "",
             "recommendation": ""

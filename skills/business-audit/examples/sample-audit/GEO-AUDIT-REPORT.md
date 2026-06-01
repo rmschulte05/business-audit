@@ -1,6 +1,6 @@
 # GEO Audit — https://stripe.com
 
-**Audit date:** 2026-05-31  
+**Audit date:** 2026-06-01  
 **Business type:** saas  
 **Engine version:** 2.0.0 (deterministic)
 

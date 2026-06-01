@@ -16,9 +16,19 @@ You MUST use the bundled source skills exactly as they are. Do not paraphrase, d
 
 ---
 
-## Required: Firecrawl MCP
+## Dependencies
 
-Both source skills require Firecrawl MCP. Before doing anything else, verify it's available — look for `mcp__firecrawl__scrape`, `mcp__firecrawl__map`, `mcp__firecrawl__search` in your tool list. If missing, stop and tell the user to set up Firecrawl (see README).
+- **Step 1 (`website-intelligence`) requires Firecrawl MCP** for scraping the
+  client and discovering competitors. Verify it's available — look for
+  `mcp__firecrawl__scrape`, `mcp__firecrawl__map`, `mcp__firecrawl__search`. If
+  missing, the competitive half cannot run; tell the user to set up Firecrawl
+  (see README).
+- **Step 2 (`geo-audit`) does NOT need Firecrawl.** It runs the bundled
+  deterministic Python engine (standard library only) plus `WebFetch`/`WebSearch`.
+  So if Firecrawl is unavailable you can still deliver the full GEO half.
+- **Python 3** must be on PATH for the GEO engine. An optional free `PSI_API_KEY`
+  ([PageSpeed Insights](https://developers.google.com/speed/docs/insights)) adds
+  real Core Web Vitals.
 
 ---
 
@@ -54,22 +64,29 @@ Keep all three files. They are the source of truth for the competitive half of t
 
 ---
 
-## STEP 2 — Run `geo-audit` (full)
+## STEP 2 — Run `geo-audit` (engine-driven)
 
-Read and execute `../geo-audit/SKILL.md` against the same client URL.
+Read and execute `../geo-audit/SKILL.md` against the same client URL. That skill:
 
-Run all three phases of `geo-audit`:
-1. Discovery & Reconnaissance
-2. Parallel Subagent Delegation (all 6 categories)
-3. Score Aggregation & Report Generation
+1. **Runs the deterministic engine** (`engine/geo_audit/run_audit.py`) to measure
+   everything objectively observable (AI crawler access, schema from raw HTML,
+   technical, countable content, llms.txt, and Core Web Vitals if `PSI_API_KEY` is
+   set). → `geo-engine.json`
+2. **Adds LLM judgment** only for the signals the engine marks `not_measured`
+   (semantic answer quality, expertise, and off-site brand/platform presence),
+   each backed by verified evidence. → `llm-scores.json`
+3. **Merges and reports** by re-running the engine with `--llm-scores`, producing
+   a reproducible composite score with a confidence band.
 
 It will produce:
 
 ```
-GEO-AUDIT-REPORT.md    # Full audit: overall score, 6-category breakdown, prioritized issues, 30-day plan
+GEO-AUDIT.json         # Machine-readable: composite, per-pillar scores, every signal + evidence
+GEO-AUDIT-REPORT.md    # Client-facing: overall score + confidence band, 6-pillar breakdown, fixes, plan
 ```
 
-This file is the source of truth for the AI-visibility half of the audit.
+**`GEO-AUDIT.json` is the source of truth for the AI-visibility half** — it holds
+the exact numbers. `GEO-AUDIT-REPORT.md` is its human-readable rendering.
 
 ---
 
@@ -92,13 +109,28 @@ Now read the three Markdown files produced by the source skills and render `dash
 - The comparison-table scores
 - The "Patterns of the Top 10%" section (3–5 patterns)
 
-### Extract from `GEO-AUDIT-REPORT.md`
-- `geo_score` (integer 0–100, from `Overall GEO Score: X/100`)
-- `geo_rating` (the rating word — Excellent / Good / Fair / Poor / Critical)
-- The 6-category Score Breakdown table: `citability`, `brand_authority`, `eeat`, `technical`, `schema`, `platform_optimization` each as integer 0–100
-- All Critical / High / Medium / Low issues with their text and any recommended fixes
-- Quick Wins list
-- 30-Day Action Plan (weekly themes)
+### Extract from `GEO-AUDIT.json` (preferred — exact, machine-readable)
+
+Read the deterministic JSON rather than regex-parsing the report. Values live
+under `composite`:
+
+- `geo_score` = `composite.geo_score` (may be a decimal; round for display)
+- `geo_rating` = `composite.rating` (Excellent / Good / Fair / Poor / Critical)
+- `confidence` = `composite.confidence` (0–1) and `composite.score_band` ([low, high])
+- The 6 pillars from `composite.pillars`: `citability`, `brand_authority`, `eeat`,
+  `technical`, `schema`, `platform_optimization` — each has `.score` (0–100 or
+  `null` if not measured) and `.confidence`
+- Per-signal fixes: iterate `composite.pillars[*].signals[*]` where
+  `recommendation` is non-empty
+
+Render the **confidence band** on the dashboard next to the score — it's a key
+selling point that the number is honest. If a pillar `.score` is `null`, show
+"Not measured", not 0.
+
+Fall back to `GEO-AUDIT-REPORT.md` only if the JSON is missing: the canonical line
+is `**Overall GEO Score: X/100 (Rating)**` and the breakdown table has a `Key`
+column with the snake_case pillar keys. Pull the issues, Quick Wins, and 30-Day
+Action Plan from the report prose.
 
 ### Token replacement
 Open `templates/dashboard.html.tmpl` and replace these tokens:
@@ -108,8 +140,10 @@ Open `templates/dashboard.html.tmpl` and replace these tokens:
 | `{{CLIENT_NAME}}` | `01-client-brand.md` Company |
 | `{{CLIENT_URL}}` | user input |
 | `{{AUDIT_DATE}}` | today's date in ISO format (YYYY-MM-DD) |
-| `{{GEO_SCORE}}` | integer from `GEO-AUDIT-REPORT.md` |
-| `{{GEO_SCORE_LABEL}}` | rating word |
+| `{{GEO_SCORE}}` | `composite.geo_score` from `GEO-AUDIT.json` (rounded). Null → `—` |
+| `{{GEO_SCORE_BAND}}` | the `±` half-width of `composite.score_band`: `round((score_band[1] - score_band[0]) / 2)`. Null → `—` |
+| `{{GEO_SCORE_LABEL}}` | rating word (`composite.rating`). Null → `Insufficient Data` |
+| `{{GEO_CONFIDENCE_PCT}}` | `round(composite.confidence * 100)`. Missing → `0` |
 | `{{FINDINGS_COUNT_CRITICAL}}` | count of Critical issues in GEO report + count of competitive gaps you flag as Critical (cap at 5) |
 | `{{FINDINGS_COUNT_HIGH}}` | same for High |
 | `{{FINDINGS_COUNT_MEDIUM}}` | same for Medium |
@@ -126,12 +160,51 @@ Open `templates/dashboard.html.tmpl` and replace these tokens:
 - `<h2>Patterns of the top 10%</h2>` — 3–5 cards summarizing the patterns section
 
 **GEO tab (`{{GEO_HTML}}`):**
-- Score gauge: `<div class="gauge">` with `gauge-number` `gauge-label` `gauge-track` `gauge-fill` (width = `{{GEO_SCORE}}%`)
-- `<h2>Score breakdown</h2>` — 6 `bar-row` rows, one per category
+
+The class names below MUST match `templates/dashboard.html.tmpl` exactly so the embedded CSS applies.
+
+- **Score gauge** — surface the confidence band, because the honesty of the number is the selling point:
+
+  ```html
+  <div class="gauge">
+    <div class="gauge-number">{geo_score}</div>
+    <div class="gauge-label">{rating}</div>
+    <div class="gauge-band">Range <strong>{lo}–{hi}</strong> · <strong>{conf_pct}%</strong> measured</div>
+    <div class="gauge-track"><div class="gauge-fill" style="width: {geo_score}%"></div></div>
+    <p class="gauge-caption">Confidence is the share of the score backed by direct measurement. The rest is marked "Not measured" and excluded from the score — never guessed.</p>
+  </div>
+  ```
+
+  - `{lo}`/`{hi}` = `composite.score_band[0]` / `[1]`; `{conf_pct}` = `round(composite.confidence * 100)`.
+  - Put **only** the rating in `.gauge-label` — do NOT append the threshold legend there.
+  - **Null-safe:** if `geo_score` or `score_band` is `null` (Insufficient Data), render the number/range as `—`, set the `.gauge-fill` width to `0%`, and use `composite.rating` (or `Insufficient Data`) in `.gauge-label`. Never print the literal `null`.
+
+- **`<h2>Score breakdown</h2>`** — 6 `bar-row` rows, one per pillar from `composite.pillars`, in weight order. The sub-caption surfaces per-pillar confidence:
+
+  ```html
+  <!-- measured pillar (status: "measured") -->
+  <div class="bar-row">
+    <div class="bar-label">{label} <small>{weight}% weight · {pillar_conf_pct}% measured</small></div>
+    <div class="bar-track"><div class="bar-fill" style="width: {score}%"></div></div>
+    <div class="bar-value">{score}</div>
+  </div>
+
+  <!-- not-measured pillar (score is null / status: "absent") -->
+  <div class="bar-row bar-row--unmeasured">
+    <div class="bar-label">{label} <small>{weight}% weight · not measured</small></div>
+    <div class="bar-track"></div>
+    <div class="bar-value">Not measured</div>
+  </div>
+  ```
+
+  - `{weight}` = `round(pillars[key].weight * 100)`; `{pillar_conf_pct}` = `round(pillars[key].confidence * 100)`.
+  - Pillar labels in weight order, with their `composite.pillars` keys: AI Citability (`citability`), Brand Authority (`brand_authority`), Content E-E-A-T (`eeat`), Technical GEO (`technical`), Schema & Structured Data (`schema`), Platform Optimization (`platform_optimization`).
+  - **RULE — Not measured (see RULES §5):** when a pillar `score` is `null` (or `status` is `absent`), add the `bar-row--unmeasured` modifier class, render the literal text `Not measured` in `.bar-value`, and leave `.bar-track` empty (no `.bar-fill`). NEVER render `0` and NEVER a 0%-width fill — that reads as a real low score and breaks the measured-vs-not-measured principle.
+
 - `<h2>Critical issues</h2>` / `High` / `Medium` / `Low` — each issue rendered as `<details class="finding" data-severity="...">` collapsible block
 - `<h2>30-day action plan</h2>` — table from the GEO report
 
-Use the class names defined in `templates/dashboard.html.tmpl` so the embedded CSS picks them up. See `references/design-system.md` if you need to add new components.
+See `references/design-system.md` if you need to add new components.
 
 ### Verification
 
@@ -151,11 +224,14 @@ research/
   01-client-brand.md           ← from website-intelligence
   02-competitor-analysis.md    ← from website-intelligence
 competitive-analysis.html      ← from website-intelligence
-GEO-AUDIT-REPORT.md            ← from geo-audit
+GEO-AUDIT.json                 ← from geo-audit (machine-readable scores)
+GEO-AUDIT-REPORT.md            ← from geo-audit (client-facing report)
 dashboard.html                 ← from this skill (NEW combined view)
 ```
 
-The two source skills' Markdown files are the source of truth for implementation. `dashboard.html` is the human-readable view.
+The source skills' outputs are the source of truth for implementation
+(`GEO-AUDIT.json` for the GEO numbers, the research Markdown for the competitive
+half). `dashboard.html` is the human-readable view.
 
 ---
 
@@ -179,4 +255,9 @@ The two source skills' Markdown files are the source of truth for implementation
 ## BUNDLED SOURCE SKILLS
 
 - `../website-intelligence/` — competitor analysis (run Phases 1–3 only)
-- `../geo-audit/` — GEO scoring (run fully); orchestrates `../geo-citability/`, `../geo-content/`, `../geo-technical/`, `../geo-schema/`, `../geo-platform-optimizer/`, `../geo-brand-mentions/`, `../geo-crawlers/`, `../geo-llmstxt/`
+- `../geo-audit/` — GEO scoring (run fully). Drives the deterministic engine at
+  `<plugin-root>/engine/` for measurement, and uses `../geo-citability/`,
+  `../geo-content/`, `../geo-technical/`, `../geo-schema/`,
+  `../geo-platform-optimizer/`, `../geo-brand-mentions/`, `../geo-crawlers/`,
+  `../geo-llmstxt/` as **reference rubrics** for the LLM-judged signals.
+- `../../engine/` — the deterministic GEO scoring engine (Python, stdlib-only).

@@ -223,7 +223,24 @@
       letter-spacing: 0.18em;
       text-transform: uppercase;
       color: var(--muted);
-      margin: 0.5rem 0 1.5rem;
+      margin: 0.5rem 0 0.25rem;
+    }
+
+    .gauge-band {
+      font-size: 0.85rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      margin: 0 0 1.5rem;
+    }
+
+    .gauge-band strong { color: var(--ink); }
+
+    .gauge-caption {
+      font-size: 0.75rem;
+      color: var(--muted);
+      max-width: 480px;
+      margin: 0.75rem auto 0;
+      line-height: 1.5;
     }
 
     .gauge-track {
@@ -258,6 +275,9 @@
     .bar-track { height: 6px; background: var(--divider); border-radius: 3px; overflow: hidden; }
     .bar-fill { height: 100%; background: var(--accent); border-radius: 3px; }
     .bar-value { text-align: right; font-family: 'Instrument Serif', serif; font-size: 1.25rem; color: var(--ink); }
+
+    .bar-row--unmeasured .bar-value { font-family: 'DM Sans', sans-serif; font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .bar-row--unmeasured .bar-track { opacity: 0.4; }
 
     table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; }
     th, td { padding: 0.65rem 0.75rem; text-align: left; border-bottom: 1px solid var(--divider); }
@@ -375,7 +395,8 @@
       <div class="meta">
         <span><strong>Site:</strong> {{CLIENT_URL}}</span>
         <span><strong>Audited:</strong> {{AUDIT_DATE}}</span>
-        <span><strong>GEO Score:</strong> {{GEO_SCORE}}/100 — {{GEO_SCORE_LABEL}}</span>
+        <span><strong>GEO Score:</strong> {{GEO_SCORE}} ± {{GEO_SCORE_BAND}}/100 — {{GEO_SCORE_LABEL}}</span>
+        <span><strong>{{GEO_CONFIDENCE_PCT}}%</strong> measured</span>
       </div>
       <div class="chips">
         <span class="chip" data-severity="critical"><span class="dot"></span>{{FINDINGS_COUNT_CRITICAL}} Critical</span>

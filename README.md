@@ -6,6 +6,39 @@ Made by **Lucid**.
 
 ---
 
+## Audit any business in 60 seconds (no API key)
+
+Only **Python 3** required — no account, no install, nothing to configure:
+
+```bash
+git clone https://github.com/rmschulte05/business-audit
+cd business-audit
+python3 audit.py https://example.com
+```
+
+You get a reproducible **GEO score with a confidence band** and three files in
+`audits/<your-domain>/`:
+
+- **GEO-AUDIT.html** — a polished, self-contained page you can open in a browser
+  or print to PDF and **email to a client**. Styles and data are inlined and it
+  loads no web fonts, so it renders identically online or fully offline.
+- **GEO-AUDIT-REPORT.md** — the readable report.
+- **GEO-AUDIT.json** — the raw evidence and per-pillar scores.
+
+The launcher also prints a **ready-to-paste prompt**: drop the report folder into
+your website's repo, open Claude Code there, paste the prompt, and Claude works
+through the prioritized fixes against your real code.
+
+The launcher auto-detects the business type from the homepage; override it with
+`--type local|saas|ecommerce|publisher|agency`. The deterministic GEO engine is
+bundled and uses the Python standard library only — **Firecrawl is needed only
+for the optional competitive analysis below**, not for the GEO audit.
+
+> Full walkthrough — sharing, PDF export, and the Claude Code fix loop — in
+> **[USAGE.md](USAGE.md)**.
+
+---
+
 ## Install (60 seconds)
 
 ```bash
@@ -16,9 +49,18 @@ Restart Claude Code. That's the whole install — everything the plugin needs is
 
 ---
 
-## Firecrawl MCP (required)
+## Firecrawl MCP (required for the competitive half)
 
-The audit scrapes the client site, discovers competitors, and deep-scrapes the top 5. It needs Firecrawl MCP to do that. **The plugin will not run without it.**
+The **competitive analysis** scrapes the client site, discovers competitors, and
+deep-scrapes the top 5. That half needs Firecrawl MCP. **Without it, the
+competitive report cannot run.**
+
+The **GEO audit** half is independent: it runs a bundled deterministic Python
+engine (standard library only — no install) plus `WebFetch`/`WebSearch`, so it
+works even without Firecrawl. If you only have Python, you still get a full,
+reproducible GEO score with a confidence band. Optionally set a free
+`PSI_API_KEY` ([PageSpeed Insights](https://developers.google.com/speed/docs/insights))
+to include real Core Web Vitals.
 
 ### 1. Get a free API key
 
@@ -66,20 +108,28 @@ Expect 5–15 minutes per audit, depending on site size.
 
 ## What you get
 
-Five files dropped into your working directory:
+Files dropped into your working directory:
 
 | File | Purpose |
-| --- | --- | --- |
+| --- | --- |
 | `research/01-client-brand.md` | Brand snapshot — colors, fonts, tone, messaging, site architecture. |
 | `research/02-competitor-analysis.md` | Top-5 deep scrape, comparison matrix, "Patterns of the top 10%". |
 | `competitive-analysis.html` | Print-ready PDF-export competitive report. |
-| `GEO-AUDIT-REPORT.md` | Overall GEO Score, 6-category breakdown, prioritized issues, 30-day plan. |
-| `dashboard.html` | The new combined view — two tabs (**Competitive** / **GEO**) rendered from the markdowns above. |
+| `GEO-AUDIT.json` | Machine-readable: composite score, per-pillar scores, confidence band, and every signal with its evidence. |
+| `GEO-AUDIT-REPORT.md` | Client-facing GEO report — score **with confidence band**, 6-pillar breakdown, prioritized fixes, 30-day plan. |
+| `dashboard.html` | The combined view — two tabs (**Competitive** / **GEO**) rendered from the files above. |
 
-The two Markdown files in `research/` plus `GEO-AUDIT-REPORT.md` are the **implementation source of truth**. Open them in a fresh Claude Code session inside your website's repo and paste:
+The GEO score is **reproducible**: it's computed in code from observed HTTP/HTML
+evidence, so re-running on the same site yields the same number. The report shows
+a confidence band (how much of the score is measured vs. judged) so it's honest
+enough to hand a paying client.
+
+The two Markdown files in `research/` plus `GEO-AUDIT.json` are the
+**implementation source of truth**. Open them in a fresh Claude Code session
+inside your website's repo and paste:
 
 ```
-Read research/02-competitor-analysis.md and GEO-AUDIT-REPORT.md. Implement every Critical and High finding against this codebase.
+Read research/02-competitor-analysis.md and GEO-AUDIT-REPORT.md (scores in GEO-AUDIT.json). Implement every Critical and High finding against this codebase.
 ```
 
 Claude can act on those reports directly.
